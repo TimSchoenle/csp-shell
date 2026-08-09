@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml/badge.svg)](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/github/v/tag/TimSchoenle/csp-shell?label=version&sort=semver&color=blue)](https://github.com/TimSchoenle/csp-shell/tags)
-[![MSRV](https://img.shields.io/badge/MSRV-1.82-blue)](Cargo.toml)
+[![MSRV](https://img.shields.io/badge/MSRV-1.85-blue)](Cargo.toml)
 [![Licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
 A `Content-Security-Policy` assembled from the app shell you actually serve — inline-script hashes

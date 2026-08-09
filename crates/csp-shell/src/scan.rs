@@ -400,11 +400,11 @@ mod tests {
     #[test]
     fn scriptfoo_is_not_a_script() {
         assert!(scan_shell("<scriptfoo>x</scriptfoo>").hashes.is_empty());
-        assert!(
+        assert_eq!(
             scan_shell("<scriptfoo>x</scriptfoo><script>y</script>")
                 .hashes
-                .len()
-                == 1
+                .len(),
+            1
         );
     }
 

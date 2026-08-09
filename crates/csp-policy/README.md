@@ -1,7 +1,7 @@
 # csp-policy
 
 [![CI](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml/badge.svg)](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml)
-[![MSRV](https://img.shields.io/badge/MSRV-1.82-blue)](../../Cargo.toml)
+[![MSRV](https://img.shields.io/badge/MSRV-1.85-blue)](../../Cargo.toml)
 [![Licence](https://img.shields.io/badge/licence-MIT-blue)](../../LICENSE)
 
 A Content-Security-Policy as data: every directive, source expression and token is a Rust type,

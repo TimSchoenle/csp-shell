@@ -10,7 +10,8 @@
 #![no_main]
 
 use arbitrary::Arbitrary;
-use csp_shell::{cloudflare, scan_shell, Csp, Source, SourceDirective};
+use csp_shell::presets::cloudflare;
+use csp_shell::{scan_shell, Csp, Source, SourceDirective};
 use libfuzzer_sys::fuzz_target;
 
 #[derive(Arbitrary, Debug)]

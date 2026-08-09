@@ -43,7 +43,9 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
-      - uses: taiki-e/install-action@cargo-hack
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hack
       - run: cargo hack --workspace --feature-powerset clippy --all-targets -- -D warnings
 
   # Newline normalisation is a line-endings bug. Testing it on one platform is testing nothing.
@@ -58,7 +60,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - uses: taiki-e/install-action@cargo-hack
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hack
       - run: cargo hack --workspace --each-feature test
       - run: cargo test --workspace --all-features
 
@@ -137,7 +141,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: crates/${{ matrix.crate }}/fuzz
-      - uses: taiki-e/install-action@cargo-fuzz
+      # The tool has to be named through the input rather than an `@cargo-fuzz` tag: tag-style
+      # references get rewritten to version tags, which leaves the action with no tool to install
+      # and the run failing later with a bare `no such command: fuzz`.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-fuzz
       # A short run on every push keeps the harness compiling and catches shallow regressions; the
       # weekly schedule is what actually explores. Seeds are passed where the target takes raw
       # input, so the interesting shapes are reachable from the first execution.
