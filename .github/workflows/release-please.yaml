@@ -1,0 +1,75 @@
+name: release-please
+
+# Release automation. `release-please` maintains a single release pull request against `main`,
+# accumulating every conventional commit since the last tag; merging it writes the changelogs,
+# bumps the crate versions and `Cargo.lock`, tags the repository and publishes the GitHub
+# releases.
+#
+# The two crates version independently — `crates/csp-policy` and `crates/csp-shell` are separate
+# entries in `release-please-config.json`, each with its own changelog and its own
+# `<name>-vX.Y.Z` tag. The `cargo-workspace` plugin is what keeps that honest: when `csp-policy`
+# bumps, it rewrites the version requirement `csp-shell` depends on, so the two never disagree
+# about which release is being built.
+#
+# Nothing is published to crates.io: the crates are consumed as tagged git dependencies, so the
+# tag *is* the artefact. Turning that on later is a `cargo publish` job gated on
+# `release_created`, ordered `csp-policy` before `csp-shell` — no other part of this file changes.
+#
+# The versions the READMEs advertise are not maintained here. `docs.yml` re-renders the templates
+# on every pull request from the versions in the manifests, so the release pull request — which
+# is the commit that changes them — carries the updated READMEs with it, rather than leaving the
+# install snippets pointing at the previous tags.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A release must never be cancelled halfway: the tag, the release and the changelog commit are
+# three separate API calls, and a cancellation between them leaves a state no rerun can infer.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  release-please:
+    name: Release Please
+    environment:
+      name: release
+      deployment: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # to create the release commit, the tags and the GitHub releases
+      issues: write # to comment on the issues a release closes
+      pull-requests: write # to open and maintain the release pull request
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      paths_released: ${{ steps.release.outputs.paths_released }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+
+      # An App installation token, not `GITHUB_TOKEN`. Commits pushed with the default token do
+      # not trigger workflows, which would leave the release pull request without the `ci` check
+      # it has to pass and without the README render described above.
+      - name: Generate Bot Token
+        id: generate_token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          permission-contents: write # release commit, tags and GitHub releases
+          permission-pull-requests: write # open and maintain the release pull request
+
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.generate_token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

@@ -1,8 +1,23 @@
+<!--
+Generated from .github/templates/csp-shell.README.md.hbs — edit that file, not this one. CI
+renders it on every pull request and commits the result back to the branch; a push to main whose
+README.md does not match its template fails the `readme` check in .github/workflows/docs.yml.
+
+Variables come from .github/scripts/readme-variables.sh, which reads the manifests:
+
+    msrv            the workspace rust-version, e.g. 1.85.0
+    shell_version   this crate's [package] version, e.g. 0.1.0
+    shell_tag       the tag that release carries, e.g. csp-shell-v0.1.0
+
+That is what keeps the install snippets and the MSRV badge correct across a release: the release
+pull request is the commit that changes those numbers, so it arrives with the rendered README
+already updated.
+-->
 # csp-shell
 
 [![CI](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml/badge.svg)](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/github/v/tag/TimSchoenle/csp-shell?label=version&sort=semver&color=blue)](https://github.com/TimSchoenle/csp-shell/tags)
-[![MSRV](https://img.shields.io/badge/MSRV-1.85-blue)](../../Cargo.toml)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-shell-v0.1.0)
+[![MSRV](https://img.shields.io/badge/MSRV-1.85.0-blue)](../../Cargo.toml)
 [![Licence](https://img.shields.io/badge/licence-MIT-blue)](../../LICENSE)
 
 A `Content-Security-Policy` assembled from the app shell you actually serve — inline-script
@@ -11,7 +26,7 @@ edge-injected script run alongside them.
 
 ```toml
 [dependencies]
-csp-shell = { git = "https://github.com/TimSchoenle/csp-shell", tag = "v0.1.0" }
+csp-shell = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-shell-v0.1.0" }
 ```
 
 Pin by tag, not branch. `Cargo.lock` records the resolved revision either way, but a branch
@@ -360,7 +375,7 @@ nothing else. `default-features = false` gives a
 pass the shell's text in yourself:
 
 ```toml
-csp-shell = { git = "…", tag = "v0.1.0", default-features = false }
+csp-shell = { git = "…", tag = "csp-shell-v0.1.0", default-features = false }
 ```
 
 Feature-gated code rots silently, which is why the full feature powerset is a CI gate from the
@@ -381,6 +396,15 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 decides the changelog section and the version bump. `feat` and a breaking change move the minor
 while the crate is pre-1.0; `fix` moves the patch.
 
+The two crates in this repository release independently, so the path a commit touches decides
+which of them it bumps: `crates/csp-shell` moves `csp-shell-v0.1.0`, `crates/csp-policy` moves its
+own tag, and release-please rewrites the version requirement between them so the pair can never
+disagree about which release is being built.
+
+`README.md` is generated. Edit `.github/templates/csp-shell.README.md.hbs` instead — CI renders it
+on every pull request and commits the result back to the branch, and a push to `main` whose
+`README.md` does not match its template fails.
+
 The gates a pull request has to pass are in [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml);
 all of them run locally:
 
@@ -396,21 +420,39 @@ cargo deny check
 Newline normalisation is a line-endings bug, so `clippy` and `test` run on both Windows and Linux
 in CI; running them on one platform locally is enough for review.
 
-Fuzzing needs nightly and lives in its own workspace under each crate's `fuzz/`. CI runs every
-target for two minutes per push and explores on a weekly schedule:
+Fuzzing lives in its own workspace under each crate's `fuzz/`, and comes in two halves.
+
+The oracles — the code that decides whether an input is a finding — are an ordinary library, not
+bodies buried in the target binaries. So the committed seeds and a deterministic sweep through
+each oracle replay on a plain `cargo test`, with no sanitizer and no nightly. That is the half
+CI gates on, and the half a reproducer stays in forever:
+
+```bash
+cd fuzz && cargo test                    # from crates/csp-shell or crates/csp-policy
+CSP_FUZZ_ITERATIONS=200000 cargo test    # a longer sweep, no recompile
+```
+
+The other half is the campaign, which discovers inputs rather than re-checking known ones. It
+needs nightly, because `libfuzzer-sys` compiles the crate under test with `-Z sanitizer=address`:
 
 ```bash
 cd crates/csp-shell
-cargo +nightly fuzz run scan_shell fuzz/corpus/scan_shell fuzz/seeds/scan_shell
+cargo +nightly fuzz run scan_shell fuzz/corpus/scan_shell fuzz/seeds/scan_shell \
+  -- -dict=fuzz/dictionaries/shell.dict
 cargo +nightly fuzz run csp_directive
 cargo +nightly fuzz run csp_builder
 cargo +nightly fuzz run shell_to_header
 
 cd ../csp-policy
-cargo +nightly fuzz run parse_source
+cargo +nightly fuzz run parse_source fuzz/corpus/parse_source fuzz/seeds/parse_source \
+  -- -dict=fuzz/dictionaries/csp.dict
 cargo +nightly fuzz run parse_terms
 cargo +nightly fuzz run build_policy
 ```
+
+`corpus/` is gitignored — a campaign's output is machine-specific and grows without bound. When a
+campaign finds something worth keeping, the input belongs in `seeds/`, where the replay suite
+picks it up on every push.
 
 ## Licence
 

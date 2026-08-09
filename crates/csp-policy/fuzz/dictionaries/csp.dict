@@ -1,0 +1,94 @@
+# libFuzzer dictionary for the policy parsers.
+#
+# A mutation engine discovers `'strict-dynamic'` from random bytes roughly never — the keyword is
+# 16 bytes that only mean anything intact. Handing it the alphabet up front is what turns the
+# campaign from an exercise in finding quotes into one that explores the grammar behind them.
+#
+# The separators are here for the opposite reason: `;`, `,`, CR and LF are the bytes that turn an
+# accepted term into a header injection, and they are the ones a campaign must keep trying to
+# smuggle through every parser.
+
+# Framing
+quote="'"
+scheme_sep=":"
+path_sep="/"
+label_sep="."
+wildcard="*"
+
+# Separators that must never survive into a rendered term
+directive_sep=";"
+policy_sep=","
+space=" "
+cr="\x0d"
+lf="\x0a"
+nul="\x00"
+tab="\x09"
+
+# Keyword source expressions
+kw_self="'self'"
+kw_none="'none'"
+kw_unsafe_inline="'unsafe-inline'"
+kw_unsafe_eval="'unsafe-eval'"
+kw_wasm_unsafe_eval="'wasm-unsafe-eval'"
+kw_unsafe_hashes="'unsafe-hashes'"
+kw_strict_dynamic="'strict-dynamic'"
+kw_report_sample="'report-sample'"
+kw_inline_speculation="'inline-speculation-rules'"
+
+# Hash and nonce framings
+hash_sha256="'sha256-"
+hash_sha384="'sha384-"
+hash_sha512="'sha512-"
+nonce="'nonce-"
+b64_pad="=="
+b64_sample="47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="
+
+# Schemes
+scheme_https="https:"
+scheme_http="http:"
+scheme_data="data:"
+scheme_blob="blob:"
+scheme_ws="wss:"
+scheme_filesystem="filesystem:"
+
+# Hosts
+host="example.com"
+host_sub="*.example.com"
+host_port=":443"
+host_port_wildcard=":*"
+
+# Directive names
+d_default_src="default-src"
+d_script_src="script-src"
+d_script_src_elem="script-src-elem"
+d_script_src_attr="script-src-attr"
+d_style_src="style-src"
+d_img_src="img-src"
+d_connect_src="connect-src"
+d_font_src="font-src"
+d_frame_src="frame-src"
+d_worker_src="worker-src"
+d_object_src="object-src"
+d_base_uri="base-uri"
+d_form_action="form-action"
+d_frame_ancestors="frame-ancestors"
+d_sandbox="sandbox"
+d_report_to="report-to"
+d_report_uri="report-uri"
+d_trusted_types="trusted-types"
+d_require_tt_for="require-trusted-types-for"
+d_upgrade="upgrade-insecure-requests"
+d_block_mixed="block-all-mixed-content"
+d_webrtc="webrtc"
+
+# Sandbox tokens
+s_allow_scripts="allow-scripts"
+s_allow_same_origin="allow-same-origin"
+s_allow_forms="allow-forms"
+s_allow_popups="allow-popups"
+s_allow_downloads="allow-downloads"
+
+# Trusted Types
+tt_sink="script"
+tt_wildcard="*"
+tt_allow_duplicates="'allow-duplicates'"

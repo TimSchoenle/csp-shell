@@ -2,16 +2,24 @@
 resolver = "2"
 members = ["crates/*"]
 
-# Everything both crates agree on lives here, so a version bump or a licence change is one edit
-# rather than one edit per member that someone forgets.
+# Everything both crates agree on lives here, so an edition or a licence change is one edit rather
+# than one edit per member that someone forgets.
+#
+# `version` is deliberately absent. The two crates release independently: `csp-policy` is a data
+# model that will sit still for long stretches, while `csp-shell` moves with the scanner and the
+# presets. A shared version would force a `csp-policy` release for every preset added, and would
+# tell a consumer pinning it that something changed when nothing did.
 [workspace.package]
-version = "0.1.0"
 edition = "2021"
 rust-version = "1.85.0"
 license = "MIT"
 repository = "https://github.com/TimSchoenle/csp-shell"
 
 [workspace.dependencies]
+# A version alongside the path. The path is what the workspace builds against; the version is the
+# requirement release-please rewrites when `csp-policy` is released on its own. If the two ever
+# fall out of step, cargo refuses to resolve rather than silently building one and recording the
+# other — which is the loud failure this pairing exists to get.
 csp-policy = { version = "0.1.0", path = "crates/csp-policy" }
 sha2 = { version = "0.11.0", default-features = false }
 getrandom = { version = "0.4.3", default-features = false }

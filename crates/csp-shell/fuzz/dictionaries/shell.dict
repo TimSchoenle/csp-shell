@@ -1,0 +1,71 @@
+# libFuzzer dictionary for the shell scanner and the builder above it.
+#
+# The scanner decides where a script begins and ends from bytes alone, so what it needs from a
+# dictionary is the tag syntax around that decision: the openings, the closings, and the shapes
+# that make a closing ambiguous — a `>` inside an attribute value, a `</script>` inside a string
+# literal, a tag that never closes at all.
+#
+# The line endings are here for a specific reason. The oracle asserts that CRLF, lone CR and LF
+# produce the same script hashes, because an HTML parser folds them before the text content
+# exists. A campaign that never emits a CR never tests that, and a CRLF checkout refused by the
+# browser is exactly the bug nobody notices until production.
+
+# Element boundaries
+open_script="<script>"
+open_script_upper="<SCRIPT>"
+open_script_module="<script type=\"module\">"
+open_script_src="<script src=\"/assets/app.js\">"
+open_script_defer="<script defer>"
+open_script_async="<script async>"
+open_script_nonce="<script nonce=\"\">"
+open_script_integrity="<script integrity=\"sha256-\">"
+open_partial="<script"
+close_script="</script>"
+close_script_upper="</SCRIPT>"
+close_script_spaced="</script >"
+close_partial="</script"
+
+# Neighbours the scanner must not confuse for a script
+open_style="<style>"
+close_style="</style>"
+comment_open="<!--"
+comment_close="-->"
+doctype="<!doctype html>"
+open_html="<html>"
+open_head="<head>"
+open_body="<body>"
+
+# The ambiguities
+attr_with_gt="data-x=\"a>b\""
+escaped_close="'</scr' + 'ipt>'"
+commented_close="// </script>"
+lt="<"
+gt=">"
+slash="/"
+quote_double="\""
+quote_single="'"
+equals="="
+
+# Encodings the hashes must be blind to, and the digest must not be
+crlf="\x0d\x0a"
+cr="\x0d"
+lf="\x0a"
+tab="\x09"
+nul="\x00"
+bom="\xef\xbb\xbf"
+
+# What the scan feeds into
+hash_sha256="'sha256-"
+kw_self="'self'"
+kw_wasm_unsafe_eval="'wasm-unsafe-eval'"
+kw_strict_dynamic="'strict-dynamic'"
+kw_unsafe_inline="'unsafe-inline'"
+nonce="'nonce-"
+d_script_src="script-src"
+d_default_src="default-src"
+d_connect_src="connect-src"
+d_frame_src="frame-src"
+directive_sep=";"
+policy_sep=","
+scheme_https="https://"
+host_sub="*.example.com"

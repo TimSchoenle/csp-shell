@@ -4,170 +4,319 @@ on:
   push:
     branches: [main]
   pull_request:
-  schedule:
-    # Advisories and the fuzzers both need a heartbeat that does not depend on someone pushing.
-    - cron: "0 5 * * 1"
+  workflow_dispatch:
 
-env:
-  CARGO_TERM_COLOR: always
-  RUSTFLAGS: -D warnings
+# Nothing granted by default: each job requests only the scopes it needs.
+permissions: {}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
 jobs:
-  format:
-    name: rustfmt
+  fmt:
+    name: fmt
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
         with:
           components: rustfmt
+      # The fuzz harnesses are workspaces of their own, so `--all` does not reach them. They are
+      # formatted in the `fuzz` job, which already has the nightly their toolchain files pin.
       - run: cargo fmt --all --check
 
-  # Feature-gated code rots silently. Three features make the full powerset cheap, so there is no
+  # Feature-gated code rots silently. Four features make the full powerset cheap, so there is no
   # reason to cap the depth — and without this, code behind `#[cfg(feature = "nonce")]` breaks
   # under `--no-default-features` and nobody notices for a release cycle.
+  #
+  # Both platforms, because the scanner's newline normalisation is a line-endings behaviour and
+  # linting it on one platform is linting nothing.
   clippy:
-    name: clippy (feature powerset, ${{ matrix.os }})
+    name: clippy (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Harden Runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
         with:
           components: clippy
-      - uses: Swatinem/rust-cache@v2
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@7f4eb899022d8fe70b20c4f3de697aa85c309026 # v2.85.11
         with:
           tool: cargo-hack
       - run: cargo hack --workspace --feature-powerset clippy --all-targets -- -D warnings
 
-  # Newline normalisation is a line-endings bug. Testing it on one platform is testing nothing.
   test:
     name: test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - uses: taiki-e/install-action@v2
+      - name: Harden Runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+      - uses: taiki-e/install-action@7f4eb899022d8fe70b20c4f3de697aa85c309026 # v2.85.11
         with:
           tool: cargo-hack
+      # `each-feature` first, so a test that only compiles because another feature happened to be
+      # on is a failure rather than a coincidence. `cargo test` rather than `nextest`: the public
+      # API is documented with runnable examples, and nextest does not run doctests.
       - run: cargo hack --workspace --each-feature test
       - run: cargo test --workspace --all-features
 
   # `no_std + alloc` against a target that genuinely has no `std`, rather than against a host that
-  # merely was not asked to link it.
-  no_std:
-    name: no_std (thumbv7em-none-eabi)
+  # merely was not asked to link it. A crate that claims `no_std` and has never been built for a
+  # bare-metal target is a crate that claims it.
+  no-std:
+    name: no_std
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
         with:
-          targets: thumbv7em-none-eabi
-      - uses: Swatinem/rust-cache@v2
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          target: thumbv7em-none-eabi
       - run: cargo build -p csp-shell --no-default-features --target thumbv7em-none-eabi
       - run: cargo build -p csp-policy --target thumbv7em-none-eabi
 
   msrv:
-    name: MSRV
+    name: msrv
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: SebRollen/toml-action@v1.2.0
-        id: msrv
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
         with:
-          file: Cargo.toml
-          field: workspace.package.rust-version
-      - uses: dtolnay/rust-toolchain@master
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          toolchain: ${{ steps.msrv.outputs.value }}
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo check --workspace --all-features
+          persist-credentials: false
+      # Read from the manifest rather than repeated inline, so the pin cannot drift from the
+      # `rust-version` it is meant to verify. Renovate is configured not to bump that key: the
+      # MSRV is a compatibility promise, and moving it is a decision rather than an update.
+      - id: msrv
+        run: echo "version=$(grep -m1 '^rust-version' Cargo.toml | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          toolchain: ${{ steps.msrv.outputs.version }}
+      - run: cargo check --workspace --all-features --all-targets
+
+  doc:
+    name: doc
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      # `--cfg docsrs` is what makes the feature requirements visible in the rendered docs, so it
+      # has to compile on nightly or docs.rs publishes a broken page for a release nobody can
+      # take back.
+      RUSTDOCFLAGS: "-D warnings --cfg docsrs"
+      # Cleared for this job only. The workflow-wide `-D warnings` applies to every crate being
+      # compiled, dependencies included, and nightly gains lints on its own schedule — so leaving
+      # it on here makes an unrelated toolchain release able to fail a pull request that changed
+      # nothing. Warnings in *this* repository's code are enforced by the stable `clippy` job.
+      # `RUSTDOCFLAGS` above still denies warnings, which is what this job is actually about.
+      RUSTFLAGS: ""
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          toolchain: nightly
+      # `--all-features` only, which is what docs.rs itself renders.
+      #
+      # A per-feature pass would be the stronger gate — the documentation is itself
+      # feature-gated, so a broken intra-doc link can hide in a set `--all-features` never
+      # renders — but it does not pass today: `csp-shell` links to `presets`,
+      # `Csp::per_response_nonce` and `Nonce::mint` from doc comments that are compiled in every
+      # configuration, so rustdoc cannot resolve them under `--no-default-features`. Making those
+      # links feature-aware is a change to the crate's doc comments, not to this file, and
+      # turning the check on before that is done buys a red pipeline rather than a finding. Code
+      # behind a `#[cfg(feature)]` is still covered: that is what the `clippy` powerset job is.
+      - run: cargo doc --workspace --all-features --no-deps
 
   deny:
-    name: cargo-deny
+    name: deny
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: EmbarkStudios/cargo-deny-action@v2
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
         with:
           command: check
 
-  docs:
-    name: rustdoc (all features)
-    runs-on: ubuntu-latest
-    env:
-      RUSTDOCFLAGS: -D warnings --cfg docsrs
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
-      - uses: Swatinem/rust-cache@v2
-      # `--cfg docsrs` is what makes the feature requirements visible in the rendered docs, so it
-      # has to compile on nightly or docs.rs publishes a broken page.
-      - run: cargo doc --all-features --no-deps
-
+  # Each crate's `fuzz/` is a workspace of its own on a nightly toolchain, so none of the jobs
+  # above touch it.
+  #
+  # Two things run here. The replay suite is the gate: it re-runs every committed seed and a
+  # deterministic sweep through the oracles on a plain `cargo test`, no sanitizer involved, and a
+  # reproducer promoted into `corpus/` keeps being checked forever. The short campaign after it is
+  # a smoke test that the libFuzzer plumbing still links — not a hunt; a real hunt is a human
+  # running `cargo fuzz run` for hours.
   fuzz:
-    name: fuzz (${{ matrix.crate }}/${{ matrix.target }})
+    name: fuzz (${{ matrix.crate }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      # Cleared for the same reason as in `doc`: this job is on nightly and compiles
+      # `libfuzzer-sys` and `arbitrary` from source, so a workflow-wide `-D warnings` hands a
+      # nightly release the ability to fail a pull request. The harness's own lints are denied
+      # explicitly in the clippy step below.
+      RUSTFLAGS: ""
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { crate: csp-shell, target: csp_directive }
-          - { crate: csp-shell, target: csp_builder }
-          - { crate: csp-shell, target: scan_shell }
-          - { crate: csp-shell, target: shell_to_header }
-          - { crate: csp-policy, target: parse_source }
-          - { crate: csp-policy, target: parse_terms }
-          - { crate: csp-policy, target: build_policy }
+          - crate: csp-policy
+            targets: parse_source parse_terms build_policy
+            dictionary: csp.dict
+          - crate: csp-shell
+            targets: csp_directive csp_builder scan_shell shell_to_header
+            dictionary: shell.dict
     defaults:
       run:
         working-directory: crates/${{ matrix.crate }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
-      - uses: Swatinem/rust-cache@v2
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
         with:
-          workspaces: crates/${{ matrix.crate }}/fuzz
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          toolchain: nightly
+          components: clippy, rustfmt
       # The tool has to be named through the input rather than an `@cargo-fuzz` tag: tag-style
       # references get rewritten to version tags, which leaves the action with no tool to install
       # and the run failing later with a bare `no such command: fuzz`.
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@7f4eb899022d8fe70b20c4f3de697aa85c309026 # v2.85.11
         with:
           tool: cargo-fuzz
-      # A short run on every push keeps the harness compiling and catches shallow regressions; the
-      # weekly schedule is what actually explores. Seeds are passed where the target takes raw
-      # input, so the interesting shapes are reachable from the first execution.
-      #
+
+      - name: Format the harness
+        working-directory: crates/${{ matrix.crate }}/fuzz
+        run: cargo fmt --all --check
+
+      - name: Lint the oracles
+        working-directory: crates/${{ matrix.crate }}/fuzz
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Replay the seeds
+        working-directory: crates/${{ matrix.crate }}/fuzz
+        env:
+          # Larger than the local default: this runs once per push, not on every `cargo test`.
+          CSP_FUZZ_ITERATIONS: "20000"
+        run: cargo test
+
       # `--target` is not optional: cargo fuzz defaults to the triple its own binary was built
       # for, and the prebuilt binary is musl. Building the fuzzer against musl links libc
       # statically, which the sanitizer refuses outright.
-      - name: Run ${{ matrix.target }}
+      #
+      # Interpolation stays out of the script body — the matrix values arrive as environment
+      # variables, so a value can never be spliced into the shell as code.
+      - name: Short campaign
+        env:
+          TARGETS: ${{ matrix.targets }}
+          DICTIONARY: ${{ matrix.dictionary }}
         run: |
-          seeds="fuzz/seeds/${{ matrix.target }}"
-          if [ -d "$seeds" ]; then
+          host="$(rustc -vV | sed -n 's/^host: //p')"
+          for target in ${TARGETS}; do
             # libFuzzer creates the corpus directory only when it is the sole one given; with a
             # seed directory alongside it, an absent corpus directory is a hard error.
-            mkdir -p "fuzz/corpus/${{ matrix.target }}"
-            cargo fuzz run --target x86_64-unknown-linux-gnu "${{ matrix.target }}" "fuzz/corpus/${{ matrix.target }}" "$seeds" -- -max_total_time=120
-          else
-            cargo fuzz run --target x86_64-unknown-linux-gnu "${{ matrix.target }}" -- -max_total_time=120
-          fi
+            mkdir -p "fuzz/corpus/${target}"
+            seeds=""
+            if [ -d "fuzz/seeds/${target}" ]; then
+              seeds="fuzz/seeds/${target}"
+            fi
+            cargo fuzz run --target "${host}" "${target}" \
+              "fuzz/corpus/${target}" ${seeds} \
+              -- "-dict=fuzz/dictionaries/${DICTIONARY}" -max_total_time=30
+          done
+
       - name: Upload crash artefacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: fuzz-artifacts-${{ matrix.crate }}-${{ matrix.target }}
+          name: fuzz-artifacts-${{ matrix.crate }}
           path: crates/${{ matrix.crate }}/fuzz/artifacts
+          if-no-files-found: ignore
+
+  # The single required check. It fails if any job failed and passes when jobs were skipped, so
+  # branch protection needs one entry that cannot silently stop existing.
+  ci:
+    name: ci
+    if: always()
+    needs: [fmt, clippy, test, no-std, msrv, doc, deny, fuzz]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Fail if any job failed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
+      - run: echo "all gates green"

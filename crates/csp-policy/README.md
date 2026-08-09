@@ -1,13 +1,40 @@
+<!--
+Generated from .github/templates/csp-policy.README.md.hbs — edit that file, not this one. CI
+renders it on every pull request and commits the result back to the branch; a push to main whose
+README.md does not match its template fails the `readme` check in .github/workflows/docs.yml.
+
+Variables come from .github/scripts/readme-variables.sh, which reads the manifests:
+
+    msrv            the workspace rust-version, e.g. 1.85.0
+    policy_version  this crate's [package] version, e.g. 0.1.0
+    policy_tag      the tag that release carries, e.g. csp-policy-v0.1.0
+
+That is what keeps the install snippet and the MSRV badge correct across a release: the release
+pull request is the commit that changes those numbers, so it arrives with the rendered README
+already updated.
+-->
 # csp-policy
 
 [![CI](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml/badge.svg)](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml)
-[![MSRV](https://img.shields.io/badge/MSRV-1.85-blue)](../../Cargo.toml)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-policy-v0.1.0)
+[![MSRV](https://img.shields.io/badge/MSRV-1.85.0-blue)](../../Cargo.toml)
 [![Licence](https://img.shields.io/badge/licence-MIT-blue)](../../LICENSE)
 
 A Content-Security-Policy as data: every directive, source expression and token is a Rust type,
 and the header value is what those types render to.
 
 `no_std + alloc`, and no dependencies at all.
+
+```toml
+[dependencies]
+csp-policy = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-policy-v0.1.0" }
+```
+
+This crate versions independently of [`csp-shell`](../csp-shell) and carries its own tag, so
+depending on it does not tie you to the release cadence of the scanner built on top of it. Pin by
+tag, not branch: `Cargo.lock` records the resolved revision either way, but a branch dependency
+lets `cargo update` move silently across arbitrary commits, whereas a tag makes every bump a
+deliberate manifest edit that shows up in review.
 
 ```rust
 use csp_policy::{Directive, Policy, Source, SourceDirective, SourceList};
@@ -86,6 +113,16 @@ partly ignore is a value that says which parts those were, and that is a differe
 
 For deriving a policy from the document you are about to serve — inline-script hashes, per-response
 nonces — see [`csp-shell`](../csp-shell), which is built on this crate and re-exports it.
+
+## Contributing
+
+`README.md` is generated. Edit `.github/templates/csp-policy.README.md.hbs` instead — CI renders
+it on every pull request and commits the result back to the branch, and a push to `main` whose
+`README.md` does not match its template fails.
+
+The gates and the fuzzing workflow are described in
+[`crates/csp-shell/README.md`](../csp-shell/README.md#contributing); this crate's three fuzz
+targets replay on a plain `cargo test` from `fuzz/`.
 
 ## Licence
 
