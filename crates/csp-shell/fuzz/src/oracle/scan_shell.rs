@@ -1,0 +1,116 @@
+//! Arbitrary documents through the scanner: it must not panic, and the parser-equivalence
+//! properties it exists to provide must hold on every input, not only on well-formed HTML.
+//!
+//! The scanner is a byte scan over attacker-adjacent input — a bundler's output, a mounted
+//! volume, a development directory — and it does index arithmetic on offsets it computes itself.
+//! An unterminated tag once produced a reversed range; that is the class of bug this oracle
+//! exists to keep from coming back.
+
+use csp_shell::{scan_shell, Csp, HashAlgorithm, Source, SourceDirective};
+
+use crate::support;
+
+/// Decode `data` as text and scan it.
+///
+/// # Panics
+///
+/// If the scan is not deterministic, produces a hash the builder would reject, or lets a line
+/// ending or a byte order mark change the hashes.
+pub fn check(data: &[u8]) {
+    let Some(html) = support::as_str(data) else {
+        return;
+    };
+    run(html);
+}
+
+/// Scan `html` and assert every property the scan must have.
+///
+/// # Panics
+///
+/// See [`check`].
+pub fn run(html: &str) {
+    let scan = scan_shell(html);
+
+    // Determinism: the same document must always produce the same policy input.
+    assert_eq!(scan, scan_shell(html));
+
+    for hash in &scan.hashes {
+        // Every hash is a SHA-256 digest of a fixed shape: 44 base64 characters, the last of them
+        // padding, framed by `'sha256-` and a closing quote.
+        assert_eq!(hash.algorithm(), HashAlgorithm::Sha256);
+        assert_eq!(hash.value().len(), HashAlgorithm::Sha256.padded_len());
+        assert!(
+            hash.value()
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'+' | b'/' | b'=')),
+            "{hash:?}"
+        );
+
+        let rendered = hash.to_string();
+        assert!(rendered.starts_with("'sha256-"), "{rendered:?}");
+        assert!(rendered.ends_with('\''), "{rendered:?}");
+
+        // A hash the builder would reject is a hash that can never reach a header, and one that
+        // does not parse back out of its own rendered form is one a consumer cannot round-trip
+        // through configuration.
+        assert_eq!(
+            Source::parse(&rendered).ok(),
+            Some(Source::Hash(hash.clone()))
+        );
+        Csp::new()
+            .directive(SourceDirective::ScriptSrc, [Source::Hash(hash.clone())])
+            .expect("a scanned hash is never routed");
+    }
+
+    // Hashes are deduplicated, so the same source expression never appears twice.
+    for (index, hash) in scan.hashes.iter().enumerate() {
+        assert!(!scan.hashes[..index].contains(hash), "duplicate {hash:?}");
+    }
+    for (index, warning) in scan.warnings.iter().enumerate() {
+        assert!(
+            !scan.warnings[..index].contains(warning),
+            "duplicate {warning:?}"
+        );
+    }
+
+    // Newline normalisation: a CSP hash covers the script's text content as the HTML parser
+    // produces it, and the parser folds CRLF and lone CR to LF before that text exists. A
+    // checkout's line endings must therefore be invisible to the hashes.
+    let normalised = html.replace("\r\n", "\n").replace('\r', "\n");
+    assert_eq!(
+        scan.hashes,
+        scan_shell(&normalised).hashes,
+        "line endings changed the hashes"
+    );
+    let crlf = normalised.replace('\n', "\r\n");
+    assert_eq!(
+        scan.hashes,
+        scan_shell(&crlf).hashes,
+        "a CRLF checkout would be refused by the browser"
+    );
+
+    // A leading byte order mark is discarded by the parser before the document exists, so
+    // prefixing one cannot change a single hash.
+    let with_bom = with_bom(html);
+    assert_eq!(
+        scan.hashes,
+        scan_shell(&with_bom).hashes,
+        "the BOM leaked into a hash"
+    );
+
+    // The digest identifies the bytes that were read, which is what makes a replaced bundle
+    // detectable. It must therefore be sensitive to exactly the changes the hashes ignore.
+    assert_ne!(
+        scan.digest,
+        scan_shell(&with_bom).digest,
+        "the digest failed to distinguish two different files"
+    );
+}
+
+/// `html` with a byte order mark in front, kept out of the assertions for readability.
+fn with_bom(html: &str) -> String {
+    let mut prefixed = String::with_capacity(html.len() + 3);
+    prefixed.push('\u{feff}');
+    prefixed.push_str(html);
+    prefixed
+}

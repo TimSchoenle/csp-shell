@@ -1,6 +1,8 @@
 [package]
 name = "csp-policy"
-version.workspace = true
+# Not inherited: the two crates version independently, and this is the number release-please
+# bumps from the conventional commits that touched `crates/csp-policy`.
+version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true

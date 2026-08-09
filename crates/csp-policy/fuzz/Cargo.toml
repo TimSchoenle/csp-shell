@@ -1,3 +1,9 @@
+# Detached from the crate under test: a fuzz harness needs nightly and its own profile, and it
+# must never appear in a consumer's dependency graph. As a workspace member it would also drag
+# nightly into `cargo fmt --all`, `cargo clippy --workspace` and the resolution the `msrv` job
+# measures at 1.85.
+[workspace]
+
 [package]
 name = "csp-policy-fuzz"
 version = "0.0.0"
@@ -7,6 +13,15 @@ edition = "2021"
 [package.metadata]
 cargo-fuzz = true
 
+# The oracles live in a library, not in the target binaries. `cargo fuzz` needs
+# `-Z sanitizer=address`, which is nightly-only and on Windows needs a runtime that ships with
+# Visual Studio rather than with rustup — an oracle that can only run under that toolchain is an
+# oracle nobody checks. With the bodies here, `tests/seeds.rs` replays every committed seed on a
+# plain `cargo test`, anywhere, and the fuzzer's job is to find new inputs to add to it.
+[lib]
+name = "csp_policy_fuzz"
+path = "src/lib.rs"
+
 [dependencies]
 libfuzzer-sys = "0.4"
 arbitrary = { version = "1", features = ["derive"] }
@@ -14,12 +29,32 @@ arbitrary = { version = "1", features = ["derive"] }
 [dependencies.csp-policy]
 path = ".."
 
-# Detached from the crate under test: a fuzz harness needs nightly and its own profile, and it
-# must never appear in a consumer's dependency graph.
-[workspace]
-
+# `-Z sanitizer=address` instruments the crate under test, so the fuzz binary must be built with
+# debug assertions on: an arithmetic overflow that panics is a finding, and one that silently
+# wraps is not. The crate does index arithmetic over parsed offsets, which is exactly the shape
+# that wraps quietly in a release profile.
 [profile.release]
-debug = 1
+debug = true
+debug-assertions = true
+overflow-checks = true
+
+[lints.rust]
+unsafe_code = "forbid"
+# `cargo fuzz` sets `--cfg fuzzing` through RUSTFLAGS, so cargo cannot see it declared anywhere
+# and `unexpected_cfgs` would fire on every target shim.
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(fuzzing)"] }
+
+# The same set as the crate under test, restated because this is a workspace of its own. An
+# oracle is the thing deciding whether a finding is real, so it is the last place to accept
+# sloppiness.
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+# Nothing here is called for its return value by anyone but the oracles themselves.
+must_use_candidate = "allow"
+
+# `test`/`doc`/`bench = false` on every target: a `fuzz_target!` binary has no `main` a test
+# harness can call, and `cargo test` in here would fail to link it before reaching `tests/`.
 
 [[bin]]
 name = "parse_source"

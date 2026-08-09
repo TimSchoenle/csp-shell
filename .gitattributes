@@ -1,0 +1,12 @@
+# Text is normalised to LF in the repository, so a checkout on Windows and one on Linux hash the
+# same bytes.
+* text=auto eol=lf
+
+# Fuzzing inputs are exempt, and this is not a stylistic preference. `scan_shell` exists to prove
+# that a CRLF checkout produces the same script hashes as an LF one, and `seeds/scan_shell` holds
+# a document with CRLF line endings and one with a byte order mark for exactly that purpose.
+# Normalising them would rewrite the input the seed *is* and quietly turn two regression tests
+# into copies of a third.
+crates/*/fuzz/seeds/** -text
+crates/*/fuzz/corpus/** -text
+crates/*/fuzz/dictionaries/** -text

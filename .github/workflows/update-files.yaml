@@ -1,0 +1,61 @@
+name: update-files
+
+# Keeps the committed lockfile in step with the manifests that produce it, and commits the result
+# to the pull request rather than failing it.
+#
+# Only the workspace `Cargo.lock` is handled. Each crate's `fuzz/Cargo.lock` is gitignored: those
+# workspaces exist to be built on a nightly toolchain by whoever is running a campaign, and
+# pinning them in the repository would make a resolution nobody consumes into something the
+# `deny` job has to reason about.
+on:
+  pull_request:
+
+# Shared with docs.yml. See the note there: both workflows commit to the pull request branch, and
+# serialising them is what keeps the second one from failing on a moved parent.
+concurrency:
+  group: branch-writes-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  lockfile:
+    name: lockfile
+    # Forks get no secrets, so there would be no token to commit with.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read # the write happens with the App token below, not with GITHUB_TOKEN
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+
+      - name: Generate Bot Token
+        id: generate_token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.ACTIONS_MAINTENANCE_APP_ID }}
+          private-key: ${{ secrets.ACTIONS_MAINTENANCE_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: false
+
+      - name: Install stable toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+
+      - name: Resolve the lockfile
+        run: cargo fetch
+
+      - name: Commit and push if changed
+        uses: TimSchoenle/actions/actions/common/commit-changes@e8af15f00459da30900d926bf8fbb9dea5a56495 # tag=actions-common-commit-changes-v1.3.0
+        with:
+          commit_message: 'build: update lockfile'
+          file_pattern: 'Cargo.lock'
+          token: ${{ steps.generate_token.outputs.token }}
