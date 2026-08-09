@@ -33,7 +33,7 @@ presets = []
 cloudflare = ["presets", "nonce"]
 
 [dependencies]
-csp-policy.workspace = true
+csp-policy = { version = "0.1.0", path = "../csp-policy" }
 sha2.workspace = true
 getrandom = { workspace = true, optional = true }
 
