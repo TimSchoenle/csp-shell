@@ -150,13 +150,17 @@ jobs:
       # A short run on every push keeps the harness compiling and catches shallow regressions; the
       # weekly schedule is what actually explores. Seeds are passed where the target takes raw
       # input, so the interesting shapes are reachable from the first execution.
+      #
+      # `--target` is not optional: cargo fuzz defaults to the triple its own binary was built
+      # for, and the prebuilt binary is musl. Building the fuzzer against musl links libc
+      # statically, which the sanitizer refuses outright.
       - name: Run ${{ matrix.target }}
         run: |
           seeds="fuzz/seeds/${{ matrix.target }}"
           if [ -d "$seeds" ]; then
-            cargo fuzz run "${{ matrix.target }}" "fuzz/corpus/${{ matrix.target }}" "$seeds" -- -max_total_time=120
+            cargo fuzz run --target x86_64-unknown-linux-gnu "${{ matrix.target }}" "fuzz/corpus/${{ matrix.target }}" "$seeds" -- -max_total_time=120
           else
-            cargo fuzz run "${{ matrix.target }}" -- -max_total_time=120
+            cargo fuzz run --target x86_64-unknown-linux-gnu "${{ matrix.target }}" -- -max_total_time=120
           fi
       - name: Upload crash artefacts
         if: failure()
