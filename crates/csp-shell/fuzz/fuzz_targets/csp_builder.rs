@@ -127,7 +127,7 @@ fuzz_target!(|session: Session| {
         // The obligation is not optional: a cached shell pins one nonce across every reader for
         // the lifetime of the cache entry.
         assert_eq!(headers.cache_control, Some("no-cache"));
-        assert_eq!(rendered.matches("'nonce-").count(), 1, "{rendered:?}");
+        assert_eq!(nonce_sources(rendered).count(), 1, "{rendered:?}");
         let script_src = directive_of(rendered, "script-src").expect("a nonce needs a script-src");
         assert!(script_src.contains("'nonce-"), "{rendered:?}");
 
@@ -136,7 +136,7 @@ fuzz_target!(|session: Session| {
         assert_eq!(strip_nonce(rendered), strip_nonce(&other));
     } else {
         assert_eq!(headers.cache_control, None);
-        assert!(!rendered.contains("'nonce-"), "{rendered:?}");
+        assert_eq!(nonce_sources(rendered).count(), 0, "{rendered:?}");
         // A constant policy must be constant, or a consumer caching it at startup is wrong.
         assert_eq!(*rendered, policy.headers().content_security_policy);
     }
@@ -189,16 +189,39 @@ fn directive_of<'a>(rendered: &'a str, name: &str) -> Option<&'a str> {
         .find(|segment| segment == &name || segment.starts_with(&format!("{name} ")))
 }
 
+/// The nonce sources of a rendered policy.
+///
+/// A nonce is a source expression, not a substring. A host-source may carry a path, and a path may
+/// contain `'nonce-`; only a token that *starts* with a quote can be a nonce to a browser, so that
+/// is what this matches. Searching the raw text instead would report a nonce that is not there —
+/// and, worse, would let a genuine one hide behind a path that also matches.
+fn nonce_sources(rendered: &str) -> impl Iterator<Item = &str> {
+    source_expressions(rendered).filter(|token| token.starts_with("'nonce-"))
+}
+
+/// Every source expression in a rendered policy, with the directive names dropped.
+fn source_expressions(rendered: &str) -> impl Iterator<Item = &str> {
+    rendered
+        .split("; ")
+        .flat_map(|segment| segment.split(' ').skip(1))
+}
+
 /// The rendered policy with its nonce source removed, so two renderings can be compared.
 fn strip_nonce(rendered: &str) -> String {
-    const SPLICE: &str = " 'nonce-";
-    let Some(start) = rendered.find(SPLICE) else {
-        return rendered.to_owned();
-    };
-    let Some(offset) = rendered[start + SPLICE.len()..].find('\'') else {
-        return rendered.to_owned();
-    };
-    let mut stripped = rendered.to_owned();
-    stripped.replace_range(start..=start + SPLICE.len() + offset, "");
-    stripped
+    rendered
+        .split("; ")
+        .map(|segment| {
+            let mut tokens = segment.split(' ');
+            let name = tokens.next().expect("split yields at least one token");
+            let kept: Vec<&str> = tokens
+                .filter(|token| !token.starts_with("'nonce-"))
+                .collect();
+            if kept.is_empty() {
+                name.to_owned()
+            } else {
+                format!("{name} {}", kept.join(" "))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("; ")
 }
