@@ -1,0 +1,10 @@
+/target
+/.idea
+/.serena
+
+# Each crate's fuzz harness is its own workspace with its own build output and corpus.
+crates/*/fuzz/target
+crates/*/fuzz/corpus
+crates/*/fuzz/artifacts
+crates/*/fuzz/coverage
+crates/*/fuzz/Cargo.lock

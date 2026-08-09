@@ -1,0 +1,92 @@
+# csp-policy
+
+[![CI](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml/badge.svg)](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml)
+[![MSRV](https://img.shields.io/badge/MSRV-1.85-blue)](../../Cargo.toml)
+[![Licence](https://img.shields.io/badge/licence-MIT-blue)](../../LICENSE)
+
+A Content-Security-Policy as data: every directive, source expression and token is a Rust type,
+and the header value is what those types render to.
+
+`no_std + alloc`, and no dependencies at all.
+
+```rust
+use csp_policy::{Directive, Policy, Source, SourceDirective, SourceList};
+
+let policy = Policy::new()
+    .with(Directive::sources(SourceDirective::DefaultSrc, [Source::SelfOrigin]))
+    .with(Directive::sources(
+        SourceDirective::ScriptSrc,
+        [Source::SelfOrigin, Source::WasmUnsafeEval],
+    ))
+    .with(Directive::sources(SourceDirective::ObjectSrc, SourceList::None))
+    .with(Directive::UpgradeInsecureRequests);
+
+assert_eq!(
+    policy.to_header_value(),
+    "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; \
+     upgrade-insecure-requests"
+);
+```
+
+## Why a type per term
+
+A CSP fails silently in both directions. A browser given a directive it cannot parse drops the
+directive; given a source expression it cannot parse it drops the expression and keeps the rest.
+Either way the response looks correct, the header is present, and the restriction the author wrote
+is not in force — or is in force more tightly than intended and the page is blank. Nothing is
+reported back to the origin that served it.
+
+So the mistakes worth catching are the ones a string API cannot see:
+
+| Mistake | What a browser does with it | What the types do |
+|---------|-----------------------------|-------------------|
+| `scrpit-src` | ignores the directive; the restriction is silently absent | not a `DirectiveName`, so it does not compile |
+| `sandbox 'self'` | parses it and ignores the value | a `Directive` carries a value of the shape its name requires |
+| `frame-ancestors 'unsafe-inline'` | drops the expression | `AncestorSource` has no keyword but `'self'` |
+| `script-src 'none' 'self'` | ignores the `'none'` | `SourceList` is `'none'` *or* a list, never both |
+| A `'sha256-…'` of the wrong length | matches nothing; the script never runs | `HashSource` checks the length the algorithm implies |
+| A nonce carrying 96 bits | accepts it; it is simply guessable | `NonceSource` enforces the 128-bit floor |
+| `https://cdn.example; script-src *` from configuration | reads it as two directives | `HostSource` parses into components and renders from them |
+
+## Rendering is infallible on purpose
+
+Every leaf type validates its bytes at construction, and every one of them is either opaque or an
+enum. There is no value in this crate whose rendered form can contain a `;`, a `,`, a space or a
+control byte that the renderer did not write itself — so `Policy::to_header_value` returns a
+`String` rather than a `Result`, and the check lives where a caller can act on it instead of where
+they can only unwrap.
+
+Three fuzz targets and a stable-toolchain property test over every parser assert exactly that.
+
+## What is covered
+
+Every directive in CSP3 and the current drafts, with the value grammar each one actually takes:
+
+- **Source lists** — `child-src`, `connect-src`, `default-src`, `fenced-frame-src`, `font-src`,
+  `frame-src`, `img-src`, `manifest-src`, `media-src`, `object-src`, `prefetch-src`, `script-src`,
+  `script-src-attr`, `script-src-elem`, `style-src`, `style-src-attr`, `style-src-elem`,
+  `worker-src`, `base-uri`, `form-action`
+- **Ancestor sources** — `frame-ancestors`, with its own narrower grammar
+- **Sandbox tokens** — all fifteen
+- **Trusted Types** — `trusted-types` and `require-trusted-types-for`
+- **Reporting** — `report-to` and `report-uri`
+- **Flags** — `upgrade-insecure-requests`, `block-all-mixed-content`, `webrtc`
+
+Source expressions cover every keyword (`'self'`, `'unsafe-inline'`, `'strict-dynamic'`,
+`'wasm-unsafe-eval'`, `'unsafe-hashes'`, `'report-sample'`, `'inline-speculation-rules'`), schemes,
+host patterns with wildcards, ports and paths, nonces, and SHA-256/384/512 hashes.
+
+## Scope
+
+Building and rendering, not parsing a whole policy back out of a response and not enforcing one.
+Each term parses from its own textual form — `Source::parse`, `HostSource::parse` and the rest —
+which is what a consumer reading origins out of configuration needs. Reassembling a whole header
+into a `Policy` is deliberately absent: the only honest result of parsing a policy a browser would
+partly ignore is a value that says which parts those were, and that is a different crate.
+
+For deriving a policy from the document you are about to serve — inline-script hashes, per-response
+nonces — see [`csp-shell`](../csp-shell), which is built on this crate and re-exports it.
+
+## Licence
+
+MIT. See [LICENSE](../../LICENSE).

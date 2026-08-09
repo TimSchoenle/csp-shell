@@ -1,0 +1,26 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+# Everything both crates agree on lives here, so a version bump or a licence change is one edit
+# rather than one edit per member that someone forgets.
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85.0"
+license = "MIT"
+repository = "https://github.com/TimSchoenle/csp-shell"
+
+[workspace.dependencies]
+csp-policy = { version = "0.1.0", path = "crates/csp-policy" }
+sha2 = { version = "0.11.0", default-features = false }
+getrandom = { version = "0.4.3", default-features = false }
+base64 = "0.23.1"
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(docsrs)"] }
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# Both crates are one namespace deep; `csp::CspError` is the documented public path.
+module_name_repetitions = "allow"
