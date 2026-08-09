@@ -183,6 +183,78 @@ impl Csp {
         Ok(self)
     }
 
+    /// Remove a directive entirely, so the policy stops saying anything about it.
+    ///
+    /// Not the same as setting it to an empty list: `img-src 'none'` blocks every image, while an
+    /// absent `img-src` falls back to `default-src`. Both are reachable, and confusing one for the
+    /// other is the kind of silent difference this crate exists to keep visible — so removal is
+    /// its own method rather than a special case of [`Csp::directive`].
+    ///
+    /// Unguarded, because removal can only loosen a policy and [`Csp::directive`] can already
+    /// loosen one further than this does.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use csp_shell::{Csp, DirectiveName};
+    ///
+    /// let policy = Csp::spa_wasm()
+    ///     .remove(DirectiveName::FontSrc)
+    ///     .build()
+    ///     .headers()
+    ///     .content_security_policy;
+    /// assert!(!policy.contains("font-src"));
+    /// ```
+    #[must_use]
+    pub fn remove(mut self, name: DirectiveName) -> Self {
+        self.policy.remove(name);
+        self
+    }
+
+    /// Remove one source expression from a directive, leaving the rest of the list alone.
+    ///
+    /// For tuning a preset without restating it: a list restated in full stops tracking the preset,
+    /// so a source added by a later version of this crate is silently dropped. A directive this
+    /// empties keeps its name and renders as `'none'`; use [`Csp::remove`] to drop it outright.
+    ///
+    /// Nothing to refuse here — a routed source expression that is already in the policy arrived
+    /// through the method that names it, and taking it back out again needs no ceremony.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use csp_shell::{Csp, Scheme, Source, SourceDirective};
+    ///
+    /// let policy = Csp::spa_wasm()
+    ///     .remove_source(SourceDirective::ImgSrc, &Source::Scheme(Scheme::Data))
+    ///     .build()
+    ///     .headers()
+    ///     .content_security_policy;
+    /// assert!(policy.contains("img-src 'self' https:;"));
+    /// ```
+    #[must_use]
+    pub fn remove_source(self, directive: SourceDirective, source: &Source) -> Self {
+        self.retain_sources(directive, |existing| existing != source)
+    }
+
+    /// Keep only the source expressions `keep` accepts, for a directive the policy already sets.
+    ///
+    /// The general form of [`Csp::remove_source`], for a rule rather than a value — dropping every
+    /// scheme source, or every host outside one origin. A no-op if the directive is absent: there
+    /// is no list to filter, and creating one to empty it would replace a `default-src` fallback
+    /// with a flat refusal.
+    #[must_use]
+    pub fn retain_sources(
+        mut self,
+        directive: SourceDirective,
+        keep: impl FnMut(&Source) -> bool,
+    ) -> Self {
+        if let Some(sources) = self.policy.source_list_mut(directive) {
+            sources.retain(keep);
+        }
+        self
+    }
+
     /// The policy as it stands, for a consumer that wants to read it rather than extend it.
     #[must_use]
     pub const fn policy(&self) -> &TypedPolicy {
@@ -243,20 +315,21 @@ impl Csp {
     /// Reserve a per-response nonce slot in `script-src`. See
     /// [`cloudflare::script_nonce`](crate::cloudflare::script_nonce).
     ///
-    /// The nonce itself is minted by [`Policy::headers`], once per response. Reserving the slot
-    /// creates `script-src` if it is absent, seeded from `default-src`'s sources: a browser
-    /// already falls back to `default-src` for scripts, so an explicit `script-src` carrying the
-    /// same sources permits exactly what the policy permitted before, plus the nonce. Without the
-    /// seeding the nonce would either tighten the policy silently or be dropped silently, and
-    /// both of those are this crate's own failure mode.
+    /// The nonce itself is minted by [`Policy::headers`], once per response. If the policy has no
+    /// `script-src` by the time it is built, [`Csp::build`] creates one seeded from `default-src`'s
+    /// sources: a browser already falls back to `default-src` for scripts, so an explicit
+    /// `script-src` carrying the same sources permits exactly what the policy permitted before,
+    /// plus the nonce. Without the seeding the nonce would either tighten the policy silently or
+    /// be dropped silently, and both of those are this crate's own failure mode.
+    ///
+    /// Deferring that to `build` is what makes the slot order-independent: reserving it before
+    /// `default-src` is set seeds from the `default-src` that ends up in the policy, not from the
+    /// absent one.
     #[cfg(feature = "nonce")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nonce")))]
     #[must_use]
     pub fn per_response_nonce(mut self, enabled: bool) -> Self {
         self.per_response_nonce = enabled;
-        if enabled {
-            self.ensure_script_src();
-        }
         self
     }
 
@@ -269,9 +342,9 @@ impl Csp {
     pub fn build(self) -> Policy {
         #[cfg(feature = "nonce")]
         if self.per_response_nonce {
-            if let Some(rendered) = self.split_around_script_src() {
-                return Policy { rendered };
-            }
+            return Policy {
+                rendered: self.split_around_script_src(),
+            };
         }
 
         Policy {
@@ -281,15 +354,18 @@ impl Csp {
 
     /// Render into the two halves a nonce is spliced between.
     ///
-    /// `None` when there is no `script-src` to splice into, which the nonce feature's own
-    /// entry points prevent — but rendering a constant policy is a better answer than a panic if
-    /// one ever slips through.
+    /// Infallible, because it establishes what it needs: `script-src` is created here rather than
+    /// only where the nonce slot is reserved, so the invariant does not depend on call order. A
+    /// `remove(ScriptSrc)` after `per_response_nonce(true)` would otherwise drop the nonce with no
+    /// diagnostic, which is this crate's own failure mode.
     #[cfg(feature = "nonce")]
-    fn split_around_script_src(&self) -> Option<Rendered> {
+    fn split_around_script_src(mut self) -> Rendered {
+        self.ensure_script_src();
         let script_src = self
             .policy
             .iter()
-            .position(|directive| directive.name() == DirectiveName::ScriptSrc)?;
+            .position(|directive| directive.name() == DirectiveName::ScriptSrc)
+            .expect("ensure_script_src has just created it");
 
         let mut head = String::new();
         let mut tail = String::new();
@@ -302,10 +378,22 @@ impl Csp {
             if index > 0 {
                 out.push_str("; ");
             }
-            directive.render_into(out);
+
+            // A `script-src` with no other sources renders as a bare name: the nonce follows
+            // immediately, and `'none'` beside a nonce is a list a browser reads as the nonce
+            // alone. Spelling it out would state a restriction that is not in force.
+            if index == script_src
+                && directive
+                    .source_list()
+                    .is_some_and(SourceList::matches_nothing)
+            {
+                out.push_str(DirectiveName::ScriptSrc.as_str());
+            } else {
+                directive.render_into(out);
+            }
         }
 
-        Some(Rendered::PerResponse { head, tail })
+        Rendered::PerResponse { head, tail }
     }
 
     /// Append host sources, which the routing table never refuses.

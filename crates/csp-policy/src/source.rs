@@ -329,6 +329,28 @@ impl SourceList {
         }
     }
 
+    /// Keep only the expressions `keep` accepts.
+    ///
+    /// A list emptied this way still matches nothing and still renders as `'none'`, which is the
+    /// same policy an empty list always described. Removing the last source expression from a
+    /// directive is not the same as removing the directive, and neither is silently turned into
+    /// the other.
+    pub fn retain(&mut self, keep: impl FnMut(&Source) -> bool) {
+        if let Self::Sources(sources) = self {
+            sources.retain(keep);
+        }
+    }
+
+    /// Remove one expression, reporting whether it was there.
+    ///
+    /// The counterpart to [`SourceList::push`], for narrowing a list that was handed over rather
+    /// than assembled — dropping one scheme from a preset without restating the rest of it.
+    pub fn remove(&mut self, source: &Source) -> bool {
+        let removed = self.contains(source);
+        self.retain(|existing| existing != source);
+        removed
+    }
+
     /// The expressions, consuming the list. Empty for `'none'`.
     #[must_use]
     pub fn into_sources(self) -> Vec<Source> {
@@ -588,6 +610,42 @@ mod tests {
         list.push(Source::SelfOrigin);
         list.push(Source::SelfOrigin);
         assert_eq!(list.to_string(), "'self'");
+    }
+
+    #[test]
+    fn removing_reports_what_it_removed_and_keeps_the_order_of_the_rest() {
+        let mut list = SourceList::of([
+            Source::SelfOrigin,
+            Source::WasmUnsafeEval,
+            Source::UnsafeInline,
+        ]);
+
+        assert!(list.remove(&Source::WasmUnsafeEval));
+        assert!(!list.remove(&Source::WasmUnsafeEval));
+        assert_eq!(list.to_string(), "'self' 'unsafe-inline'"); // csp-lint: allow — the removal has to be asserted against the sources it left behind
+
+        list.retain(|source| source == &Source::SelfOrigin);
+        assert_eq!(list.to_string(), "'self'");
+    }
+
+    /// A list emptied by removal describes the same policy an empty list always did. Turning it
+    /// back into `'none'` would be indistinguishable, and turning it into "no directive" would be
+    /// a different policy entirely — so it does neither.
+    #[test]
+    fn emptying_a_list_by_removal_still_matches_nothing() {
+        let mut list = SourceList::of([Source::SelfOrigin]);
+        assert!(list.remove(&Source::SelfOrigin));
+        assert!(list.matches_nothing());
+        assert_eq!(list.to_string(), "'none'");
+    }
+
+    /// `'none'` holds no expressions, so there is nothing to take out of it.
+    #[test]
+    fn removing_from_none_is_a_no_op() {
+        let mut list = SourceList::None;
+        assert!(!list.remove(&Source::SelfOrigin));
+        list.retain(|_| false);
+        assert_eq!(list, SourceList::None);
     }
 
     /// Everything a browser would drop from `frame-ancestors` is refused instead.

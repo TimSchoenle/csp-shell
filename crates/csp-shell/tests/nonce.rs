@@ -3,7 +3,9 @@
 
 #![cfg(feature = "nonce")]
 
-use csp_shell::{scan_shell, Csp, Nonce, Policy, Source, SourceDirective};
+use csp_shell::{
+    scan_shell, Csp, DirectiveName, Nonce, Policy, Source, SourceDirective, SourceList,
+};
 
 /// The base64 value between `'nonce-` and the closing quote, from one rendered header.
 fn minted_nonce_from(header: &str) -> String {
@@ -131,6 +133,66 @@ fn a_created_script_src_inherits_default_src() {
     assert!(header.starts_with(
         "default-src 'self' https://cdn.example; script-src 'self' https://cdn.example 'nonce-"
     ));
+}
+
+/// The slot is filled when the policy is built, not when it is reserved, so the seeding sees the
+/// `default-src` the policy ends up with rather than the one it had at that moment. Reserving
+/// first and configuring afterwards is the order a consumer reaches for when the nonce comes from
+/// a deployment flag and the sources come from configuration.
+#[test]
+fn reserving_the_slot_before_default_src_seeds_from_it_anyway() {
+    let header = Csp::new()
+        .per_response_nonce(true)
+        .directive(SourceDirective::DefaultSrc, [Source::SelfOrigin])
+        .unwrap()
+        .build()
+        .headers()
+        .content_security_policy;
+    assert!(header.starts_with("default-src 'self'; script-src 'self' 'nonce-"));
+}
+
+/// Removing `script-src` while a slot is reserved must not drop the nonce: the policy would still
+/// render, the edge-injected script would still be refused, and nothing would say why.
+#[test]
+fn removing_script_src_does_not_silently_drop_the_nonce() {
+    let policy = Csp::spa_wasm()
+        .per_response_nonce(true)
+        .remove(DirectiveName::ScriptSrc)
+        .build();
+
+    assert!(policy.is_per_response());
+    let header = policy.headers().content_security_policy;
+    assert!(header.contains("'nonce-"));
+    // Re-created from `default-src`, and at the end rather than in the position it was removed
+    // from — the removal is honoured for everything except the slot that was reserved.
+    assert!(header.contains("script-src 'self' 'nonce-"));
+}
+
+/// `'none'` beside a nonce is a list this crate's types cannot spell and a browser reads as the
+/// nonce alone. A `script-src` with nothing else in it renders as a bare name so that the header
+/// says what is actually in force.
+#[test]
+fn an_otherwise_empty_script_src_renders_without_none() {
+    for csp in [
+        Csp::new().per_response_nonce(true),
+        Csp::spa_wasm()
+            .per_response_nonce(true)
+            .retain_sources(SourceDirective::ScriptSrc, |_| false),
+        Csp::spa_wasm()
+            .per_response_nonce(true)
+            .directive(SourceDirective::ScriptSrc, SourceList::None)
+            .unwrap(),
+    ] {
+        let header = csp.build().headers().content_security_policy;
+        assert!(
+            header.contains("script-src 'nonce-"),
+            "expected a bare script-src: {header}"
+        );
+        assert!(
+            !header.contains("script-src 'none'"),
+            "'none' rendered beside a nonce: {header}"
+        );
+    }
 }
 
 /// Reserving and then releasing a slot leaves a policy that is constant again, so a consumer's

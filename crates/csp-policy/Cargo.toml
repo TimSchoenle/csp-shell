@@ -8,7 +8,7 @@ repository.workspace = true
 description = "A fully typed Content-Security-Policy: every directive, source expression and token as a Rust type, rendered to a header value that cannot carry an injection."
 documentation = "https://docs.rs/csp-policy"
 readme = "README.md"
-keywords = ["csp", "content-security-policy", "security-headers", "builder", "no-std"]
+keywords = ["csp", "security-headers", "builder", "no-std"]
 categories = ["web-programming", "no-std"]
 
 # `no_std + alloc` and dependency-free. A policy is a data structure and a string; neither needs a

@@ -6,8 +6,8 @@
 //! seeding of `script-src`, the routed source expressions, and the shell's hashes.
 
 use csp_shell::{
-    scan_shell, Csp, CspError, Directive, SandboxToken, Source, SourceDirective, SourceList,
-    TrustedTypeSink,
+    scan_shell, Csp, CspError, Directive, DirectiveName, SandboxToken, Source, SourceDirective,
+    SourceList, TrustedTypeSink,
 };
 
 /// The exact policy `spa_wasm()` is documented to produce. A test on the whole string rather than
@@ -237,6 +237,93 @@ fn a_directive_can_be_set_to_none() {
         .headers()
         .content_security_policy;
     assert_eq!(policy, "object-src 'none'");
+}
+
+/// The distinction removal exists to keep visible: an absent directive falls back to
+/// `default-src`, an empty one blocks everything. Both are reachable, and neither is spelled like
+/// the other.
+#[test]
+fn removing_a_directive_is_not_the_same_as_emptying_it() {
+    let removed = Csp::spa_wasm()
+        .remove(DirectiveName::FontSrc)
+        .build()
+        .headers()
+        .content_security_policy;
+    assert!(!removed.contains("font-src"));
+    assert!(removed.contains("img-src 'self' https: data:; object-src 'none'"));
+
+    let emptied = Csp::spa_wasm()
+        .directive(SourceDirective::FontSrc, SourceList::None)
+        .unwrap()
+        .build()
+        .headers()
+        .content_security_policy;
+    assert!(emptied.contains("font-src 'none'"));
+}
+
+/// Removing a name the policy never set changes nothing, so a consumer's teardown of a preset
+/// does not have to know which version of the preset introduced what.
+#[test]
+fn removing_an_absent_directive_is_a_no_op() {
+    assert_eq!(
+        Csp::spa_wasm()
+            .remove(DirectiveName::FrameSrc)
+            .build()
+            .headers()
+            .content_security_policy,
+        Csp::spa_wasm().build().headers().content_security_policy
+    );
+}
+
+/// Narrowing a preset without restating it: the surviving sources keep their order, and the
+/// directive keeps its position, so a later version of the preset can still add to it.
+#[test]
+fn remove_source_narrows_a_list_in_place() {
+    let policy = Csp::spa_wasm()
+        .remove_source(SourceDirective::ImgSrc, &Source::scheme("data").unwrap())
+        .build()
+        .headers()
+        .content_security_policy;
+    assert!(policy.contains("img-src 'self' https:; font-src 'self' data:"));
+}
+
+/// The rule form, for a narrowing that is not a single value.
+#[test]
+fn retain_sources_filters_by_rule() {
+    let policy = Csp::spa_wasm()
+        .retain_sources(SourceDirective::ImgSrc, |source| {
+            !matches!(source, Source::Scheme(_))
+        })
+        .build()
+        .headers()
+        .content_security_policy;
+    assert!(policy.contains("img-src 'self'; font-src"));
+}
+
+/// Filtering a directive the policy does not set must not create one: an empty `script-src` is a
+/// flat refusal where the absent one was a `default-src` fallback.
+#[test]
+fn retaining_on_an_absent_directive_creates_nothing() {
+    let policy = Csp::new()
+        .directive(SourceDirective::DefaultSrc, [Source::SelfOrigin])
+        .unwrap()
+        .retain_sources(SourceDirective::ScriptSrc, |_| false)
+        .build()
+        .headers()
+        .content_security_policy;
+    assert_eq!(policy, "default-src 'self'");
+}
+
+/// Removing every source leaves the directive saying `'none'`, not saying nothing. The two differ
+/// in what they permit, so the removal that empties a list must not quietly become the other one.
+#[test]
+fn removing_every_source_leaves_a_directive_that_permits_nothing() {
+    let policy = Csp::spa_wasm()
+        .retain_sources(SourceDirective::ImgSrc, |_| false)
+        .build()
+        .headers()
+        .content_security_policy;
+    assert!(policy.contains("img-src 'none'"));
 }
 
 /// Hashes coexist with host sources: under CSP a script runs if it matches *any* source

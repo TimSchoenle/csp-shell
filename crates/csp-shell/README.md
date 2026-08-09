@@ -136,6 +136,41 @@ What that buys, beyond the injection:
 Seven fuzz targets and two stable-toolchain property tests assert that no accepted input can put a
 separator into the rendered header that the builder did not emit itself.
 
+### Adjusting a preset
+
+`Csp::spa_wasm` is a starting point, not a fixed policy. Four methods adjust one, and each keeps
+the directive's position so the shape of the header does not shift under an override:
+
+| Want | Method |
+|------|--------|
+| Replace a directive's whole list | `Csp::directive(name, sources)` |
+| Add to a list, creating it if absent | `Csp::extend(name, sources)` |
+| Take one source expression out | `Csp::remove_source(name, &source)` |
+| Take out everything matching a rule | `Csp::retain_sources(name, keep)` |
+| Drop the directive entirely | `Csp::remove(name)` |
+
+```rust
+use csp_shell::{Csp, DirectiveName, Scheme, Source, SourceDirective};
+
+let csp = Csp::spa_wasm()
+    // `img-src 'self' https: data:` becomes `img-src 'self' https:`
+    .remove_source(SourceDirective::ImgSrc, &Source::Scheme(Scheme::Data))
+    // and `font-src` falls back to `default-src` again
+    .remove(DirectiveName::FontSrc);
+```
+
+Prefer removing a source to restating the list. A restated list stops tracking the preset, so a
+source a later version of this crate adds is dropped without a diagnostic — the same silent failure
+a hand-maintained header has.
+
+Removing every source from a directive is not the same as removing the directive. `img-src 'none'`
+blocks every image; an absent `img-src` falls back to `default-src`. The two are spelled
+differently here because a browser treats them differently, and the difference is invisible in a
+page that renders one image fewer than it should.
+
+None of these is refused. Removal can only loosen a policy, and `Csp::directive` can already loosen
+one further than any of them.
+
 ### Everything else a policy can say
 
 `Csp` covers the directives this crate has an opinion about. Everything else — `sandbox`,

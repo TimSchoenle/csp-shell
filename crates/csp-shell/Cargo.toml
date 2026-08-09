@@ -8,7 +8,7 @@ repository.workspace = true
 description = "Build a Content-Security-Policy from the app shell you actually serve — inline-script hashes, computed the way the HTML parser computes them, plus optional per-response nonces for Cloudflare."
 documentation = "https://docs.rs/csp-shell"
 readme = "README.md"
-keywords = ["csp", "content-security-policy", "security-headers", "spa", "cloudflare"]
+keywords = ["csp", "security-headers", "spa", "cloudflare"]
 categories = ["web-programming", "no-std"]
 exclude = ["/fuzz"]
 
