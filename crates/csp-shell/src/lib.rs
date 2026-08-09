@@ -58,8 +58,9 @@
 //! |---|---|---|---|
 //! | *(core)* | always | [`Csp`], [`Policy`], [`ScanResult`], [`scan_shell`], the typed vocabulary, SHA-256 hashing | `csp-policy`, `sha2` |
 //! | `std` | **on** | `scan_shell_at`, `ScanError` | — |
-//! | `nonce` | off | `Nonce`, `Csp::per_response_nonce`, nonce splicing in [`Policy::headers`] | `getrandom` |
-//! | `cloudflare` | off | `cloudflare::script_nonce`, `cloudflare::turnstile` | — |
+//! | `nonce` | off | `Nonce`, `Csp::per_response_nonce`, `Headers::nonce`, nonce splicing in [`Policy::headers`] | `getrandom` |
+//! | `presets` | off | [`presets`] — the origins third-party services load from, in the directives they belong in | — |
+//! | `cloudflare` | off | `presets` and `nonce` together, under the name the Cloudflare concessions were first published as | — |
 //!
 //! `std` is on by default because it adds no dependency and its absence is a compile error for
 //! the obvious first call. `default-features = false` gives a `no_std + alloc` core usable from a
@@ -87,9 +88,9 @@ mod error;
 mod scan;
 mod util;
 
-#[cfg(feature = "cloudflare")]
-#[cfg_attr(docsrs, doc(cfg(feature = "cloudflare")))]
-pub mod cloudflare;
+#[cfg(feature = "presets")]
+#[cfg_attr(docsrs, doc(cfg(feature = "presets")))]
+pub mod presets;
 
 #[cfg(feature = "nonce")]
 mod nonce;

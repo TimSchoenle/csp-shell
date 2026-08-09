@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Build a Content-Security-Policy from the app shell you actually serve — inline-script hashes, computed the way the HTML parser computes them, plus optional per-response nonces for Cloudflare."
+description = "Build a Content-Security-Policy from the app shell you actually serve — inline-script hashes, computed the way the HTML parser computes them, plus per-response nonces and presets for Cloudflare, Google, Stripe, Sentry and more."
 documentation = "https://docs.rs/csp-shell"
 readme = "README.md"
 keywords = ["csp", "security-headers", "spa", "cloudflare"]
@@ -22,8 +22,13 @@ std = []
 # Per-response nonce minting.
 nonce = ["dep:getrandom"]
 
-# Cloudflare concessions. Implies `nonce` because `script_nonce` is one of them.
-cloudflare = ["nonce"]
+# Third-party service presets. No dependency: the origins are literals and the directives they
+# belong in are the knowledge being shipped.
+presets = []
+
+# The name the Cloudflare concessions were first published under. `presets` is where they live
+# now, and `nonce` is what `script_nonce` needs.
+cloudflare = ["presets", "nonce"]
 
 [dependencies]
 csp-policy.workspace = true

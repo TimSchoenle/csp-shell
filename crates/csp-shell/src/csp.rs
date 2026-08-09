@@ -312,8 +312,11 @@ impl Csp {
         self.push_script_source(Source::StrictDynamic)
     }
 
-    /// Reserve a per-response nonce slot in `script-src`. See
-    /// [`cloudflare::script_nonce`](crate::cloudflare::script_nonce).
+    /// Reserve a per-response nonce slot in `script-src`.
+    ///
+    /// See the `presets` module for the services that need one, and for the difference between
+    /// those that read the nonce out of the response header and those that need it stamped into
+    /// the document as well.
     ///
     /// The nonce itself is minted by [`Policy::headers`], once per response. If the policy has no
     /// `script-src` by the time it is built, [`Csp::build`] creates one seeded from `default-src`'s
@@ -396,18 +399,28 @@ impl Csp {
         Rendered::PerResponse { head, tail }
     }
 
-    /// Append host sources, which the routing table never refuses.
+    /// Append source expressions supplied by this crate's own presets.
     ///
-    /// For this crate's own literals — a host is not one of the three routed keywords, so putting
-    /// them through the fallible path would hand a caller a `Result` that cannot be `Err`.
-    #[cfg(feature = "cloudflare")]
-    pub(crate) fn extend_hosts(
+    /// Infallible where [`Csp::extend`] is not, because the sources come from literals in this
+    /// crate rather than from a caller: none of them is a routed keyword, and the debug assertion
+    /// holds that claim to account rather than leaving it as a comment.
+    ///
+    /// The directive is seeded from its fallback chain first, so a preset can only ever widen a
+    /// policy — see [`Csp::ensure_seeded`].
+    #[cfg(feature = "presets")]
+    pub(crate) fn extend_unrouted(
         mut self,
         directive: SourceDirective,
-        hosts: impl IntoIterator<Item = csp_policy::HostSource>,
+        sources: impl IntoIterator<Item = Source>,
     ) -> Self {
-        self.policy
-            .extend_sources(directive, hosts.into_iter().map(Source::Host));
+        let sources: Vec<Source> = sources.into_iter().collect();
+        debug_assert!(
+            check_routing(directive, &sources).is_ok(),
+            "a preset must not supply a source expression that has a dedicated method"
+        );
+
+        self.ensure_seeded(directive);
+        self.policy.extend_sources(directive, sources);
         self
     }
 
@@ -421,16 +434,48 @@ impl Csp {
 
     /// Create `script-src` from `default-src`'s sources if it is absent.
     fn ensure_script_src(&mut self) {
-        if self.policy.contains(DirectiveName::ScriptSrc) {
+        self.ensure_seeded(SourceDirective::ScriptSrc);
+    }
+
+    /// Create `directive` from whatever it was falling back to, if the policy does not set it.
+    ///
+    /// Appending to an absent directive would otherwise *narrow* the policy: before the append a
+    /// browser resolved it through the fallback chain, and afterwards it does not. Seeding with
+    /// the sources it was inheriting leaves what the policy permits unchanged, so the append can
+    /// only widen. When nothing in the chain is set there is no fallback to preserve and the
+    /// directive starts empty.
+    fn ensure_seeded(&mut self, directive: SourceDirective) {
+        if self.policy.contains(directive.name()) {
             return;
         }
-        let inherited = self
-            .policy
-            .source_list(SourceDirective::DefaultSrc)
+
+        let inherited = fallback_chain(directive)
+            .iter()
+            .find_map(|fallback| self.policy.source_list(*fallback))
             .cloned()
             .unwrap_or_else(|| SourceList::Sources(Vec::new()));
-        self.policy
-            .set(Directive::Sources(SourceDirective::ScriptSrc, inherited));
+        self.policy.set(Directive::Sources(directive, inherited));
+    }
+}
+
+/// The directives an absent directive is resolved through, nearest first.
+///
+/// A browser walks this chain, so seeding a directive this crate is about to create has to walk
+/// the same one: seeding `worker-src` from `default-src` while the policy sets `child-src` would
+/// drop the sources that were actually in force.
+///
+/// `base-uri` and `form-action` have no fallback — absent, they are unrestricted rather than
+/// inherited, so there is nothing to preserve and creating one is a tightening the caller asked
+/// for. Every remaining fetch directive resolves to `default-src`.
+const fn fallback_chain(directive: SourceDirective) -> &'static [SourceDirective] {
+    use SourceDirective::{ChildSrc, DefaultSrc, ScriptSrc, StyleSrc};
+
+    match directive {
+        SourceDirective::DefaultSrc | SourceDirective::BaseUri | SourceDirective::FormAction => &[],
+        SourceDirective::ScriptSrcAttr | SourceDirective::ScriptSrcElem => &[ScriptSrc, DefaultSrc],
+        SourceDirective::StyleSrcAttr | SourceDirective::StyleSrcElem => &[StyleSrc, DefaultSrc],
+        SourceDirective::FrameSrc | SourceDirective::WorkerSrc => &[ChildSrc, DefaultSrc],
+        _ => &[DefaultSrc],
     }
 }
 
@@ -510,6 +555,20 @@ pub struct Headers {
     /// policy: without it the minted nonce is shared by every reader served from cache,
     /// which admits exactly the inline script the nonce exists to constrain.
     pub cache_control: Option<&'static str>,
+
+    /// The nonce minted for this response, when a slot is reserved. `None` otherwise.
+    ///
+    /// Already spliced into `content_security_policy`; this is the same value, handed back for the
+    /// services that do not read it out of the header. Cloudflare does read the header and needs
+    /// nothing from this field. Google Tag Manager reads the nonce off *its own loader element*,
+    /// so a shell using it must carry the same value on that `<script>` — as must any SSR template
+    /// whose inline script is generated rather than hashed.
+    ///
+    /// Stamping a `nonce` attribute does not change a script's text, so the hashes
+    /// [`Csp::with_scan`] computed remain valid alongside it.
+    #[cfg(feature = "nonce")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nonce")))]
+    pub nonce: Option<crate::Nonce>,
 }
 
 impl Policy {
@@ -526,6 +585,8 @@ impl Policy {
             Rendered::Constant(text) => Headers {
                 content_security_policy: text.clone(),
                 cache_control: None,
+                #[cfg(feature = "nonce")]
+                nonce: None,
             },
             #[cfg(feature = "nonce")]
             Rendered::PerResponse { head, tail } => {
@@ -543,6 +604,7 @@ impl Policy {
                 Headers {
                     content_security_policy: policy,
                     cache_control: Some("no-cache"),
+                    nonce: Some(nonce),
                 }
             }
         }

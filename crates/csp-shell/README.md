@@ -212,7 +212,9 @@ origin — an edge worker, a CDN's RUM beacon, an SSR template — needs one, be
 were computed before that script existed.
 
 ```rust
-let policy = csp_shell::cloudflare::script_nonce(Csp::spa_wasm().with_scan(&scan)).build();
+use csp_shell::presets::cloudflare;
+
+let policy = cloudflare::script_nonce(Csp::spa_wasm().with_scan(&scan)).build();
 assert!(policy.is_per_response());
 assert_eq!(policy.headers().cache_control, Some("no-cache"));
 ```
@@ -232,9 +234,59 @@ Two conditions, and only the first is enforceable from inside your process:
    `Cache-Control` — satisfying condition 1 at the origin and violating it at the edge. That one
    belongs in your deployment checklist.
 
-`cloudflare::turnstile` admits `https://challenges.cloudflare.com` in `script-src` **and**
-`frame-src`, because Turnstile loads `api.js` and then frames the widget from the same host.
-Admitting the script without the frame renders an empty box.
+### Stamping the nonce into the shell
+
+Cloudflare reads the nonce out of the response header. Most services do not — Google Tag Manager
+reads it off *its own loader element* and copies it onto the tags it injects, and an SSR template
+has to put it on the scripts it generates. For those, `Headers::nonce` hands back the value that
+was spliced into the header:
+
+```rust
+let headers = policy.headers();
+if let Some(nonce) = &headers.nonce {
+    // Render the shell with `nonce="{nonce}"` on the tags that need it. A `nonce` attribute is
+    // not script text, so the hashes computed from the shell stay valid alongside it.
+}
+```
+
+This turns the shell into a per-response render rather than a static file, which is a real cost.
+Skip it when nothing needs the value in the document.
+
+### Third-party services
+
+`presets` carries the origins a service loads from, in the directives they belong in — the second
+half being the part that is easy to get wrong and silent when you do. Presets compose in any
+order, are idempotent, and only ever widen: a preset that creates a directive seeds it from
+whatever the browser was falling back to first, so adding Turnstile does not quietly revoke
+same-origin frames.
+
+```rust
+use csp_shell::presets::{cloudflare, google, stripe};
+
+let csp = cloudflare::script_nonce(
+    google::fonts(stripe::checkout(cloudflare::turnstile(
+        Csp::spa_wasm().with_scan(&scan),
+    ))),
+);
+```
+
+| Module | Origins presets | Nonce presets |
+|---|---|---|
+| `cloudflare` | `turnstile`, `web_analytics` | `script_nonce` |
+| `google` | `tag_manager`, `analytics`, `fonts`, `recaptcha` | `tag_manager_nonce` |
+| `stripe` | `elements`, `checkout` | — |
+| `sentry` | `loader`, `session_replay`, `ingest(origin)` | — |
+| `plausible` | `cloud`, `self_hosted(origin)` | — |
+| `fathom` | `cloud`, `custom_domain(origin)` | — |
+| `matomo` | `instance(origin)` | — |
+
+The `_nonce` suffix is the whole distinction: those reserve the per-response nonce slot and bring
+a `Cache-Control` obligation with them, while the others append host sources and cost nothing. A
+preset taking an `origin` argument is one whose host is deployment-specific; it returns a
+`Result`, because a configuration value that would carry a `;` into the header stops at the parse.
+
+A preset is not a promise that a service will keep the hosts it has today, and not a substitute
+for its own documentation. `Csp::extend` takes any origin a preset missed.
 
 ### Detecting a shell that changed underneath the policy
 
@@ -298,8 +350,9 @@ it with U+FFFD, so the hash will not match, and something upstream is already br
 |---------|----------|--------------|
 | *(core)* | `Csp`, `Policy`, `Headers`, `ScanResult`, `scan_shell`, the typed vocabulary, SHA-256 hashing | `csp-policy`, `sha2` |
 | `std` (default) | `scan_shell_at`, `ScanError`, `std::error::Error` impls | — |
-| `nonce` | `Nonce`, `Csp::per_response_nonce`, nonce splicing in `Policy::headers` | `getrandom` |
-| `cloudflare` | `cloudflare::script_nonce`, `cloudflare::turnstile`; implies `nonce` | — |
+| `nonce` | `Nonce`, `Csp::per_response_nonce`, `Headers::nonce`, nonce splicing in `Policy::headers` | `getrandom` |
+| `presets` | `presets::*` — the origins third-party services load from, in the directives they belong in | — |
+| `cloudflare` | `presets` and `nonce` together, under the name the Cloudflare concessions were first published as | — |
 
 The default build compiles `csp-policy` — which has no dependencies of its own — and `sha2`, and
 nothing else. `default-features = false` gives a

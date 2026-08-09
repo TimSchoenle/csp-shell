@@ -30,7 +30,7 @@ let headers = policy.headers();
 
 | Crate | What it is | Dependencies |
 |-------|------------|--------------|
-| [`csp-shell`](crates/csp-shell) | the shell scanner, the hashes, the per-response nonce, and the Cloudflare concessions | `csp-policy`, `sha2` |
+| [`csp-shell`](crates/csp-shell) | the shell scanner, the hashes, the per-response nonce, and the third-party service presets | `csp-policy`, `sha2` |
 | [`csp-policy`](crates/csp-policy) | a Content-Security-Policy as data: every directive, source expression and token as a type | none |
 
 Most consumers want `csp-shell`, which re-exports the whole of `csp-policy` — building a policy
