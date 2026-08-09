@@ -43,14 +43,14 @@ dependencies = [
 
 [[package]]
 name = "csp-policy"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "base64",
 ]
 
 [[package]]
 name = "csp-shell"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "csp-policy",
  "getrandom",
