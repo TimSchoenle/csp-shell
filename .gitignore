@@ -1,10 +1,61 @@
-/target
-/.idea
-/.serena
+# ---------------------------------------------------------------------------
+# Rust / Cargo
+# ---------------------------------------------------------------------------
+# Compiled output for every crate in the workspace (and the wasm frontend,
+# which keeps its own `target/`). A bare `target/` matches any directory of
+# that name at any depth.
+target/
 
-# Each crate's fuzz harness is its own workspace with its own build output and corpus.
-crates/*/fuzz/target
-crates/*/fuzz/corpus
-crates/*/fuzz/artifacts
-crates/*/fuzz/coverage
-crates/*/fuzz/Cargo.lock
+# We are a dependency
+Cargo.lock
+
+# Backup files emitted by `rustfmt`.
+**/*.rs.bk
+
+# `cargo mutants` writes its report here (`missed.txt`, `outcomes.json`, per-mutant logs). It is
+# machine output and a new one is produced by every run; CI uploads it as an artifact instead.
+# The *configuration* — `.cargo/mutants.toml` — is committed, because the scope is a decision.
+mutants.out/
+mutants.out.old/
+
+# MSVC debug symbols.
+*.pdb
+
+# ---------------------------------------------------------------------------
+# Environment & secrets (never commit these)
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+# Any `*.env` file, wherever it lives. The patterns above match only files *named* `.env…`,
+# so a file such as `deploy/local.env` slips past them and is tracked by accident. Match by
+# suffix as well, and ship `*.env.example` instead.
+*.env
+!*.env.example
+
+# ---------------------------------------------------------------------------
+# IDE / editor metadata
+# ---------------------------------------------------------------------------
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# ---------------------------------------------------------------------------
+# Agent / assistant tooling caches
+# ---------------------------------------------------------------------------
+.serena/cache/
+.serena/*.local.yml
+.junie/tools
+
+# ---------------------------------------------------------------------------
+# Logs & OS junk
+# ---------------------------------------------------------------------------
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
