@@ -16,7 +16,7 @@ already updated.
 # csp-shell
 
 [![CI](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml/badge.svg)](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-shell-v0.1.0)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-shell-v0.2.0)
 [![MSRV](https://img.shields.io/badge/MSRV-1.85.0-blue)](../../Cargo.toml)
 [![Licence](https://img.shields.io/badge/licence-MIT-blue)](../../LICENSE)
 
@@ -26,7 +26,7 @@ edge-injected script run alongside them.
 
 ```toml
 [dependencies]
-csp-shell = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-shell-v0.1.0" }
+csp-shell = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-shell-v0.2.0" }
 ```
 
 Pin by tag, not branch. `Cargo.lock` records the resolved revision either way, but a branch
@@ -375,7 +375,7 @@ nothing else. `default-features = false` gives a
 pass the shell's text in yourself:
 
 ```toml
-csp-shell = { git = "…", tag = "csp-shell-v0.1.0", default-features = false }
+csp-shell = { git = "…", tag = "csp-shell-v0.2.0", default-features = false }
 ```
 
 Feature-gated code rots silently, which is why the full feature powerset is a CI gate from the
@@ -397,7 +397,7 @@ decides the changelog section and the version bump. `feat` and a breaking change
 while the crate is pre-1.0; `fix` moves the patch.
 
 The two crates in this repository release independently, so the path a commit touches decides
-which of them it bumps: `crates/csp-shell` moves `csp-shell-v0.1.0`, `crates/csp-policy` moves its
+which of them it bumps: `crates/csp-shell` moves `csp-shell-v0.2.0`, `crates/csp-policy` moves its
 own tag, and release-please rewrites the version requirement between them so the pair can never
 disagree about which release is being built.
 

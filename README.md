@@ -18,8 +18,8 @@ already updated.
 # csp-shell
 
 [![CI](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml/badge.svg)](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml)
-[![csp-shell](https://img.shields.io/badge/csp--shell-0.1.0-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-shell-v0.1.0)
-[![csp-policy](https://img.shields.io/badge/csp--policy-0.1.0-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-policy-v0.1.0)
+[![csp-shell](https://img.shields.io/badge/csp--shell-0.2.0-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-shell-v0.2.0)
+[![csp-policy](https://img.shields.io/badge/csp--policy-0.2.0-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-policy-v0.2.0)
 [![MSRV](https://img.shields.io/badge/MSRV-1.85.0-blue)](Cargo.toml)
 [![Licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
@@ -29,7 +29,7 @@ edge-injected script run alongside them.
 
 ```toml
 [dependencies]
-csp-shell = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-shell-v0.1.0" }
+csp-shell = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-shell-v0.2.0" }
 ```
 
 ```rust
@@ -57,8 +57,8 @@ without a document to derive it from: an edge worker, a config validator, a test
 
 Both are `no_std + alloc` at their core, and neither depends on a web framework.
 
-The two version independently, and each carries its own tag: `csp-shell-v0.1.0` and
-`csp-policy-v0.1.0`. `csp-policy` is a data model that sits still for long stretches while
+The two version independently, and each carries its own tag: `csp-shell-v0.2.0` and
+`csp-policy-v0.2.0`. `csp-policy` is a data model that sits still for long stretches while
 `csp-shell` moves with the scanner and the presets, and a shared version would mean releasing the
 one to describe a change in the other.
 
