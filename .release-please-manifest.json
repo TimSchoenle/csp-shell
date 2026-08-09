@@ -1,4 +1,4 @@
 {
-  "crates/csp-policy": "0.1.0",
-  "crates/csp-shell": "0.1.0"
+  "crates/csp-policy": "0.2.0",
+  "crates/csp-shell": "0.2.0"
 }
