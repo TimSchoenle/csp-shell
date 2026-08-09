@@ -232,7 +232,7 @@ fn check_structure(policy: &Policy, rendered: &str) {
     support::assert_field_value(rendered);
 
     if policy.is_empty() {
-        assert!(rendered.is_empty());
+        assert_eq!(rendered, "");
         return;
     }
 
