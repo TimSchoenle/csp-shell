@@ -1,0 +1,38 @@
+[package]
+name = "csp-shell"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Build a Content-Security-Policy from the app shell you actually serve — inline-script hashes, computed the way the HTML parser computes them, plus optional per-response nonces for Cloudflare."
+documentation = "https://docs.rs/csp-shell"
+readme = "README.md"
+keywords = ["csp", "content-security-policy", "security-headers", "spa", "cloudflare"]
+categories = ["web-programming", "no-std"]
+exclude = ["/fuzz"]
+
+[features]
+default = ["std"]
+
+# Filesystem reading and `std::error::Error`. No dependencies; without it the crate is
+# `no_std + alloc` and callers pass the shell's bytes in themselves.
+std = []
+
+# Per-response nonce minting.
+nonce = ["dep:getrandom"]
+
+# Cloudflare concessions. Implies `nonce` because `script_nonce` is one of them.
+cloudflare = ["nonce"]
+
+[dependencies]
+csp-policy.workspace = true
+sha2.workspace = true
+getrandom = { workspace = true, optional = true }
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

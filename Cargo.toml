@@ -1,46 +1,26 @@
-[package]
-name = "csp-shell"
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+# Everything both crates agree on lives here, so a version bump or a licence change is one edit
+# rather than one edit per member that someone forgets.
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.82.0"
 license = "MIT"
-description = "Build a Content-Security-Policy from the app shell you actually serve — inline-script hashes, computed the way the HTML parser computes them, plus optional per-response nonces for Cloudflare."
 repository = "https://github.com/TimSchoenle/csp-shell"
-documentation = "https://docs.rs/csp-shell"
-readme = "README.md"
-keywords = ["csp", "content-security-policy", "security-headers", "spa", "cloudflare"]
-categories = ["web-programming", "no-std"]
-exclude = ["/fuzz", "/.github", "/Design.md", "/.idea", "/.serena"]
 
-[features]
-default = ["std"]
-
-# Filesystem reading and `std::error::Error`. No dependencies; without it the crate is
-# `no_std + alloc` and callers pass the shell's bytes in themselves.
-std = []
-
-# Per-response nonce minting.
-nonce = ["dep:getrandom"]
-
-# Cloudflare concessions. Implies `nonce` because `script_nonce` is one of them.
-cloudflare = ["nonce"]
-
-[dependencies]
+[workspace.dependencies]
+csp-policy = { version = "0.1.0", path = "crates/csp-policy" }
 sha2 = { version = "0.10", default-features = false }
-getrandom = { version = "0.3", optional = true, default-features = false }
-
-[dev-dependencies]
-# Reference implementation for the differential test over the hand-rolled encoder.
+getrandom = { version = "0.3", default-features = false }
 base64 = "0.22"
 
-[lints.rust]
+[workspace.lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(docsrs)"] }
 
-[lints.clippy]
+[workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
-# The crate is one namespace deep; `csp::CspError` is the documented public path.
+# Both crates are one namespace deep; `csp::CspError` is the documented public path.
 module_name_repetitions = "allow"
-
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]

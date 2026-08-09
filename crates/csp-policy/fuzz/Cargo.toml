@@ -1,0 +1,43 @@
+[package]
+name = "csp-policy-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+
+[dependencies.csp-policy]
+path = ".."
+
+# Detached from the crate under test: a fuzz harness needs nightly and its own profile, and it
+# must never appear in a consumer's dependency graph.
+[workspace]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "parse_source"
+path = "fuzz_targets/parse_source.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "parse_terms"
+path = "fuzz_targets/parse_terms.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "build_policy"
+path = "fuzz_targets/build_policy.rs"
+test = false
+doc = false
+bench = false

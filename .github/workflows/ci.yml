@@ -27,7 +27,7 @@ jobs:
           components: rustfmt
       - run: cargo fmt --all --check
 
-  # Feature-gated code rots silently. Four features make the full powerset cheap, so there is no
+  # Feature-gated code rots silently. Three features make the full powerset cheap, so there is no
   # reason to cap the depth — and without this, code behind `#[cfg(feature = "nonce")]` breaks
   # under `--no-default-features` and nobody notices for a release cycle.
   clippy:
@@ -44,7 +44,7 @@ jobs:
           components: clippy
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@cargo-hack
-      - run: cargo hack --feature-powerset clippy --all-targets -- -D warnings
+      - run: cargo hack --workspace --feature-powerset clippy --all-targets -- -D warnings
 
   # Newline normalisation is a line-endings bug. Testing it on one platform is testing nothing.
   test:
@@ -59,11 +59,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@cargo-hack
-      - run: cargo hack --each-feature test
-      - run: cargo test --all-features
-      # The debug-only `UnknownDirective` behaviour has a release-mode branch, and it is only
-      # exercised by a release-mode test run.
-      - run: cargo test --all-features --release
+      - run: cargo hack --workspace --each-feature test
+      - run: cargo test --workspace --all-features
 
   # `no_std + alloc` against a target that genuinely has no `std`, rather than against a host that
   # merely was not asked to link it.
@@ -76,7 +73,8 @@ jobs:
         with:
           targets: thumbv7em-none-eabi
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --no-default-features --target thumbv7em-none-eabi
+      - run: cargo build -p csp-shell --no-default-features --target thumbv7em-none-eabi
+      - run: cargo build -p csp-policy --target thumbv7em-none-eabi
 
   msrv:
     name: MSRV
@@ -87,12 +85,12 @@ jobs:
         id: msrv
         with:
           file: Cargo.toml
-          field: package.rust-version
+          field: workspace.package.rust-version
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ steps.msrv.outputs.value }}
       - uses: Swatinem/rust-cache@v2
-      - run: cargo check --all-features
+      - run: cargo check --workspace --all-features
 
   deny:
     name: cargo-deny
@@ -117,18 +115,28 @@ jobs:
       - run: cargo doc --all-features --no-deps
 
   fuzz:
-    name: fuzz (${{ matrix.target }})
+    name: fuzz (${{ matrix.crate }}/${{ matrix.target }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        target: [csp_directive, csp_builder, scan_shell, shell_to_header]
+        include:
+          - { crate: csp-shell, target: csp_directive }
+          - { crate: csp-shell, target: csp_builder }
+          - { crate: csp-shell, target: scan_shell }
+          - { crate: csp-shell, target: shell_to_header }
+          - { crate: csp-policy, target: parse_source }
+          - { crate: csp-policy, target: parse_terms }
+          - { crate: csp-policy, target: build_policy }
+    defaults:
+      run:
+        working-directory: crates/${{ matrix.crate }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: fuzz
+          workspaces: crates/${{ matrix.crate }}/fuzz
       - uses: taiki-e/install-action@cargo-fuzz
       # A short run on every push keeps the harness compiling and catches shallow regressions; the
       # weekly schedule is what actually explores. Seeds are passed where the target takes raw
@@ -145,5 +153,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: fuzz-artifacts-${{ matrix.target }}
-          path: fuzz/artifacts
+          name: fuzz-artifacts-${{ matrix.crate }}-${{ matrix.target }}
+          path: crates/${{ matrix.crate }}/fuzz/artifacts
