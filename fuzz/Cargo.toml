@@ -1,0 +1,51 @@
+[package]
+name = "csp-shell-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+
+[dependencies.csp-shell]
+path = ".."
+features = ["std", "nonce", "cloudflare"]
+
+# Detached from the crate under test: a fuzz harness needs nightly and its own profile, and it
+# must never appear in a consumer's dependency graph.
+[workspace]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "csp_directive"
+path = "fuzz_targets/csp_directive.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "csp_builder"
+path = "fuzz_targets/csp_builder.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "scan_shell"
+path = "fuzz_targets/scan_shell.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "shell_to_header"
+path = "fuzz_targets/shell_to_header.rs"
+test = false
+doc = false
+bench = false

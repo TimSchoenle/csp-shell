@@ -1,0 +1,42 @@
+# `cargo deny check`. The crate's whole dependency argument is that there is almost nothing to
+# check; this file is what keeps that true as the tree moves under it.
+
+[graph]
+all-features = true
+# Dev-dependencies never reach a consumer. `base64` is one on purpose: the hand-rolled encoder is
+# pinned to it by a differential test without putting it in anybody's runtime graph.
+exclude-dev = true
+
+[advisories]
+version = 2
+yanked = "deny"
+
+[licenses]
+version = 2
+# Exactly what the tree resolves to today. Kept minimal on purpose: a new licence in the graph
+# should be a decision someone makes, not a line that was already there.
+allow = ["MIT", "Apache-2.0"]
+confidence-threshold = 0.93
+
+[bans]
+multiple-versions = "deny"
+wildcards = "deny"
+# A web framework in this tree would put every consumer downstream of a pre-1.0 release cadence,
+# including the ones who only ever call `scan_shell`. Banned rather than merely avoided, so that
+# the decision survives a contributor who has not read the README.
+deny = [
+    { name = "axum" },
+    { name = "actix-web" },
+    { name = "warp" },
+    { name = "hyper" },
+    { name = "tower-http" },
+    { name = "reqwest" },
+    { name = "tracing" },
+    { name = "thiserror" },
+    { name = "rand" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

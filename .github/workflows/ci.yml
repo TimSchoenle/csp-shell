@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Advisories and the fuzzers both need a heartbeat that does not depend on someone pushing.
+    - cron: "0 5 * * 1"
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all --check
+
+  # Feature-gated code rots silently. Four features make the full powerset cheap, so there is no
+  # reason to cap the depth — and without this, code behind `#[cfg(feature = "nonce")]` breaks
+  # under `--no-default-features` and nobody notices for a release cycle.
+  clippy:
+    name: clippy (feature powerset, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@cargo-hack
+      - run: cargo hack --feature-powerset clippy --all-targets -- -D warnings
+
+  # Newline normalisation is a line-endings bug. Testing it on one platform is testing nothing.
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@cargo-hack
+      - run: cargo hack --each-feature test
+      - run: cargo test --all-features
+      # The debug-only `UnknownDirective` behaviour has a release-mode branch, and it is only
+      # exercised by a release-mode test run.
+      - run: cargo test --all-features --release
+
+  # `no_std + alloc` against a target that genuinely has no `std`, rather than against a host that
+  # merely was not asked to link it.
+  no_std:
+    name: no_std (thumbv7em-none-eabi)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: thumbv7em-none-eabi
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --no-default-features --target thumbv7em-none-eabi
+
+  msrv:
+    name: MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: SebRollen/toml-action@v1.2.0
+        id: msrv
+        with:
+          file: Cargo.toml
+          field: package.rust-version
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.msrv.outputs.value }}
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --all-features
+
+  deny:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+
+  docs:
+    name: rustdoc (all features)
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -D warnings --cfg docsrs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+      # `--cfg docsrs` is what makes the feature requirements visible in the rendered docs, so it
+      # has to compile on nightly or docs.rs publishes a broken page.
+      - run: cargo doc --all-features --no-deps
+
+  fuzz:
+    name: fuzz (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [csp_directive, csp_builder, scan_shell, shell_to_header]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: fuzz
+      - uses: taiki-e/install-action@cargo-fuzz
+      # A short run on every push keeps the harness compiling and catches shallow regressions; the
+      # weekly schedule is what actually explores. Seeds are passed where the target takes raw
+      # input, so the interesting shapes are reachable from the first execution.
+      - name: Run ${{ matrix.target }}
+        run: |
+          seeds="fuzz/seeds/${{ matrix.target }}"
+          if [ -d "$seeds" ]; then
+            cargo fuzz run "${{ matrix.target }}" "fuzz/corpus/${{ matrix.target }}" "$seeds" -- -max_total_time=120
+          else
+            cargo fuzz run "${{ matrix.target }}" -- -max_total_time=120
+          fi
+      - name: Upload crash artefacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-artifacts-${{ matrix.target }}
+          path: fuzz/artifacts
