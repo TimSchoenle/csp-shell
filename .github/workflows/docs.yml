@@ -75,7 +75,8 @@ jobs:
         # where git does not record the executable bit.
         run: |
           set -euo pipefail
-          echo "json=$(bash .github/scripts/readme-variables.sh)" >> "$GITHUB_OUTPUT"
+          json="$(bash .github/scripts/readme-variables.sh)"
+          echo "json=${json}" >> "$GITHUB_OUTPUT"
 
       # The repository facts the three templates share: name, description, licence, links and the
       # docs index. `manifest` names a member because the workspace root is a virtual manifest
@@ -156,7 +157,8 @@ jobs:
         id: config
         run: |
           set -euo pipefail
-          echo "json=$(bash .github/scripts/readme-variables.sh)" >> "$GITHUB_OUTPUT"
+          json="$(bash .github/scripts/readme-variables.sh)"
+          echo "json=${json}" >> "$GITHUB_OUTPUT"
 
       # Same two inputs as in `render`, for the same two reasons. `branch` in particular has to
       # agree across the jobs, or the badge URL this one renders would differ from the one the
