@@ -56,11 +56,22 @@ field() {
 
 version='^[0-9A-Za-z][0-9A-Za-z.+-]*$'
 release='^[0-9]+(\.[0-9]+){0,2}$'
+token='^[0-9A-Za-z][0-9A-Za-z.+-]*$'
 
-# The MSRV is inherited by both crates from `[workspace.package]`, so there is one of it.
+# `rust-version`, `edition` and `license` are inherited by both crates from `[workspace.package]`,
+# so there is one of each and the root manifest is where it lives. The readme-variables action
+# reads a member manifest and finds `rust-version.workspace = true` there, which is an absence
+# rather than a value — so these three are supplied from here and merged over its payload.
 msrv="$(field "${root}/Cargo.toml" rust-version "${release}")"
+edition="$(field "${root}/Cargo.toml" edition "${release}")"
+license="$(field "${root}/Cargo.toml" license "${token}")"
 shell_version="$(field "${root}/crates/csp-shell/Cargo.toml" version "${version}")"
 policy_version="$(field "${root}/crates/csp-policy/Cargo.toml" version "${version}")"
 
-printf '{"msrv":"%s","shell_version":"%s","shell_tag":"csp-shell-v%s","policy_version":"%s","policy_tag":"csp-policy-v%s"}\n' \
-    "${msrv}" "${shell_version}" "${shell_version}" "${policy_version}" "${policy_version}"
+# Two shapes in one object. The flat keys are what the three templates have always read; `repo`
+# and `toolchain` are objects the readme-variables action also builds, and a same-named object is
+# merged key by key rather than replaced, so naming them here corrects two fields and drops
+# nothing the action derived.
+printf '{"msrv":"%s","shell_version":"%s","shell_tag":"csp-shell-v%s","policy_version":"%s","policy_tag":"csp-policy-v%s","repo":{"license":"%s"},"toolchain":{"msrv":"%s","edition":"%s"}}\n' \
+    "${msrv}" "${shell_version}" "${shell_version}" "${policy_version}" "${policy_version}" \
+    "${license}" "${msrv}" "${edition}"

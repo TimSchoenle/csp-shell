@@ -1,36 +1,48 @@
 <!--
-Generated from .github/templates/README.md.hbs — edit that file, not this one. CI renders it on
-every pull request and commits the result back to the branch; a push to main whose README.md
-does not match its template fails the `readme` check in .github/workflows/docs.yml.
+Generated from .github/templates/README.md.hbs. Edit that file, not this one. CI renders it on
+every pull request and commits the result back to the branch; a push to main whose README.md does
+not match its template fails the `readme` check in .github/workflows/docs.yml.
 
-Variables come from .github/scripts/readme-variables.sh, which reads the manifests:
+The payload has two halves.
 
-    msrv            the workspace rust-version, e.g. 1.85.0
-    shell_version   the csp-shell [package] version, e.g. 0.1.0
-    shell_tag       the tag that release carries, e.g. csp-shell-v0.1.0
-    policy_version  the csp-policy [package] version
-    policy_tag      the tag that release carries, e.g. csp-policy-v0.1.0
+Repository facts (name, description, licence, links, the docs index) come from
+TimSchoenle/actions/actions/common/readme-variables, which reads crates/csp-shell/Cargo.toml.
+The workspace root is a virtual manifest with no [package] table, so it cannot be read instead.
 
-That is what keeps the install snippet and the MSRV badge correct across a release: the release
-pull request is the commit that changes those numbers, so it arrives with the rendered README
-already updated.
+Version numbers come from one command:
+
+    bash .github/scripts/readme-variables.sh
+
+Both crate versions are in there because the two release independently and neither manifest knows
+the other's number. That script also supplies `repo.license` and `toolchain.*`, which the members
+inherit from [workspace.package] and the action therefore cannot see.
 -->
-# csp-shell
+# {{ repo.name }}
 
-[![CI](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml/badge.svg)](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml)
-[![csp-shell](https://img.shields.io/badge/csp--shell-{{shell_version}}-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/{{shell_tag}})
-[![csp-policy](https://img.shields.io/badge/csp--policy-{{policy_version}}-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/{{policy_tag}})
-[![MSRV](https://img.shields.io/badge/MSRV-{{msrv}}-blue)](Cargo.toml)
-[![Licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
+{{ repo.description }}
 
-A `Content-Security-Policy` assembled from the app shell you actually serve — inline-script hashes
-computed the way the HTML parser computes them, plus the per-response nonce that lets an
-edge-injected script run alongside them.
+[![csp-shell](https://img.shields.io/badge/csp--shell-{{ shell_version }}-blue)]({{ repo.url }}/releases/tag/{{ shell_tag }})
+[![csp-policy](https://img.shields.io/badge/csp--policy-{{ policy_version }}-blue)]({{ repo.url }}/releases/tag/{{ policy_tag }})
+[![CI](https://img.shields.io/github/actions/workflow/status/{{ repo.slug }}/ci.yml?branch={{ repo.branch }}&label=CI)]({{ repo.url }}/actions/workflows/ci.yml)
+[![Licence](https://img.shields.io/badge/licence-{{ repo.license }}-blue)](LICENSE)
+[![MSRV](https://img.shields.io/badge/MSRV-{{ toolchain.msrv }}-blue)](Cargo.toml)
 
-```toml
-[dependencies]
-csp-shell = { git = "https://github.com/TimSchoenle/csp-shell", tag = "{{shell_tag}}" }
-```
+## What this is
+
+Two crates. [`csp-policy`](crates/csp-policy) is a Content-Security-Policy as data: every
+directive, source expression and token is a Rust type, and the header value is what those types
+render to. [`csp-shell`](crates/csp-shell) reads the app shell your server is about to serve and
+derives the `script-src` hashes from it.
+
+Every failure mode here is silent. A browser drops a directive it cannot parse, drops a source
+expression it cannot parse, keeps the rest, and reports nothing back to the origin that served it.
+The header looks correct, the scripts do not run, and the page is blank. Both crates exist to move
+those mistakes to a compile error, or to the point where a configuration value is read.
+
+`csp-shell` re-exports the whole of `csp-policy`, so building a policy needs one dependency rather
+than two. Neither depends on a web framework. Both are `no_std + alloc` at their core.
+
+## Quick start
 
 ```rust
 use csp_shell::{scan_shell_at, Csp};
@@ -44,66 +56,220 @@ let headers = policy.headers();
 // headers.cache_control            -> None, unless a per-response nonce is reserved
 ```
 
-## The crates
+`scan_shell_at` returns a `'sha256-…'` source for every `<script>` element that carries no `src`.
+`Csp::spa_wasm` is a starting policy for a WebAssembly single-page application; `Csp::new` starts
+from nothing.
 
-| Crate | What it is | Dependencies |
-|-------|------------|--------------|
-| [`csp-shell`](crates/csp-shell) | the shell scanner, the hashes, the per-response nonce, and the third-party service presets | `csp-policy`, `sha2` |
-| [`csp-policy`](crates/csp-policy) | a Content-Security-Policy as data: every directive, source expression and token as a type | none |
+## Table of contents
 
-Most consumers want `csp-shell`, which re-exports the whole of `csp-policy` — building a policy
-needs one dependency, not two. `csp-policy` stands alone for anything that needs a typed policy
-without a document to derive it from: an edge worker, a config validator, a test fixture.
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Compatibility](#compatibility)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [Security](#security)
+- [Licence](#licence)
 
-Both are `no_std + alloc` at their core, and neither depends on a web framework.
+## Features
 
-The two version independently, and each carries its own tag: `{{shell_tag}}` and
-`{{policy_tag}}`. `csp-policy` is a data model that sits still for long stretches while
-`csp-shell` moves with the scanner and the presets, and a shared version would mean releasing the
-one to describe a change in the other.
+- The hashes are read from the file the server is about to serve, so a hand-maintained list cannot
+  drift from it. The scanner folds `\r\n` and lone `\r` to `\n` and strips a leading byte order
+  mark before hashing, because both happen in the HTML parser before a script element's text
+  exists, and both are invisible in the rendered header when they are wrong.
+- **A per-response nonce covers script your process never sees.** Cloudflare's bot products read
+  the nonce out of the `Content-Security-Policy` response header and copy it onto the inline
+  script they inject at the edge, so nothing is stamped into the shell. `Policy::headers()` hands
+  back the `Cache-Control: no-cache` that reserving a nonce obliges.
+- Presets for seven services carry the origins each one loads from, in the directives they belong
+  in: `cloudflare`, `google`, `stripe`, `sentry`, `plausible`, `fathom`, `matomo`. They compose in
+  any order, are idempotent, and only ever widen a policy.
+- Every term is a type rather than a string. `SourceList` is `'none'` or a list and never both,
+  `HashSource` checks the length its algorithm implies, `NonceSource` enforces a 128-bit floor,
+  and `Source::host` parses an origin into components, so a `;` arriving from an environment
+  variable fails at the read instead of opening a directive nobody wrote.
+- `'unsafe-eval'` <!-- csp-lint: allow — the routed source expressions cannot be listed without naming them -->, `'unsafe-inline'` and `'strict-dynamic'` are reached through named
+  methods instead of accepted as data. A method name is a token `format!` cannot produce, so a
+  lint matching `allow_unsafe_eval` in your own repository is exact where one matching a parsed
+  value is a heuristic.
+- **`Policy::to_header_value` returns a `String`, not a `Result`.** Every leaf type validates its
+  bytes at construction, so no value in either crate can render a `;`, a `,`, a space or a control
+  byte the renderer did not write itself. Seven fuzz targets and two stable-toolchain property
+  tests assert it.
+- `ScanResult::digest` is SHA-256 of the shell's raw bytes. That is how a caller notices a bundle
+  swapped under a running process, which no configuration change announces.
 
-## Why
+## Installation
 
-Every failure mode in this area is **silent**. The header looks correct, the browser refuses the
-scripts, the page is blank, and the only evidence is in a console nobody is watching. A
-hand-maintained list of `sha256-…` values drifts the moment anyone edits the shell; a directive
-name with a typo in it is a restriction that simply is not there; an origin read from an
-environment variable can carry a `;` and open a directive nobody wrote.
+Both crates are consumed as tagged git dependencies. Nothing is published to crates.io, so there
+is no version requirement to resolve: the tag names the revision.
 
-The full argument, the deployment obligations, and the reload pattern are in
-[`crates/csp-shell/README.md`](crates/csp-shell/README.md). The typing argument is in
-[`crates/csp-policy/README.md`](crates/csp-policy/README.md).
+```toml
+[dependencies]
+csp-shell = { git = "{{ repo.url }}", tag = "{{ shell_tag }}" }
+```
 
-## Development
+Pin by tag, not branch. `Cargo.lock` records the resolved revision either way, but a branch
+dependency lets `cargo update` move across arbitrary commits, whereas a tag makes every bump a
+manifest edit that shows up in review.
 
-Every gate a pull request has to pass is in
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml); all of them run locally:
+The typed vocabulary on its own, for anything with no document to derive a policy from:
+
+```toml
+[dependencies]
+csp-policy = { git = "{{ repo.url }}", tag = "{{ policy_tag }}" }
+```
+
+## Usage
+
+### Serving the header
+
+`Policy::headers()` returns `content_security_policy` and `cache_control`, and both belong to one
+response. A per-response nonce served from cache is pinned across every reader for the lifetime of
+the cache entry, which admits exactly the inline script the nonce exists to constrain.
+`Policy::is_per_response()` is false when no nonce is reserved; render once at startup and reuse
+the result.
+
+There is deliberately no `tower::Layer` here. A layer you forget to mount is invisible, where a
+struct field you ignore is visible at the call site, and this way the crates work under `axum`,
+`actix`, `warp` or a bare `hyper` service.
+
+### Reading an origin from configuration
+
+```rust
+use csp_shell::{Csp, Source, SourceDirective};
+
+let cdn = Source::host(&std::env::var("CDN_ORIGIN")?)?;   // fails here, on bad configuration
+let csp = Csp::spa_wasm().extend(SourceDirective::ImgSrc, [Source::SelfOrigin, cdn])?;
+```
+
+A source containing `;` would otherwise close the directive and open a new one, and the resulting
+header parses cleanly in every browser.
+
+### Adjusting a preset
+
+```rust
+use csp_shell::{Csp, DirectiveName, Scheme, Source, SourceDirective};
+
+let csp = Csp::spa_wasm()
+    // `img-src 'self' https: data:` becomes `img-src 'self' https:`
+    .remove_source(SourceDirective::ImgSrc, &Source::Scheme(Scheme::Data))
+    // and `font-src` falls back to `default-src` again
+    .remove(DirectiveName::FontSrc);
+```
+
+Prefer removing a source to restating the list. A restated list stops tracking the preset, so a
+source a later release adds is dropped with no diagnostic.
+
+Removing every source from a directive is not the same as removing the directive. `img-src 'none'`
+blocks every image; an absent `img-src` falls back to `default-src`. The two are spelled
+differently because a browser treats them differently.
+
+### Third-party services
+
+```rust
+use csp_shell::presets::{cloudflare, google, stripe};
+
+let csp = cloudflare::script_nonce(
+    google::fonts(stripe::checkout(cloudflare::turnstile(
+        Csp::spa_wasm().with_scan(&scan),
+    ))),
+);
+```
+
+A preset whose name ends in `_nonce` reserves the per-response nonce slot and brings the
+`Cache-Control` obligation with it. A preset taking an `origin` argument returns a `Result`,
+because its host is deployment-specific and arrives from configuration.
+
+## Configuration
+
+`csp-shell` is configured at compile time, by Cargo features.
+
+| Feature | Contents | Dependencies |
+|---|---|---|
+| *(core)* | `Csp`, `Policy`, `Headers`, `ScanResult`, `scan_shell`, the typed vocabulary, SHA-256 hashing | `csp-policy`, `sha2` |
+| `std` (default) | `scan_shell_at`, `ScanError`, `std::error::Error` impls | — |
+| `nonce` | `Nonce`, `Csp::per_response_nonce`, `Headers::nonce`, nonce splicing in `Policy::headers` | `getrandom` |
+| `presets` | `presets::*`, the origins third-party services load from | — |
+| `cloudflare` | `presets` and `nonce` together, under the name the Cloudflare concessions were first published as | — |
+
+The default build compiles `csp-policy`, which has no dependencies of its own, and `sha2`.
+Turning the default off leaves a `no_std + alloc` core that takes the shell's text from the
+caller, usable from a build script, a bundler or a bare-metal target:
+
+```toml
+csp-shell = { git = "{{ repo.url }}", tag = "{{ shell_tag }}", default-features = false }
+```
+
+`csp-policy` has no features. It is `no_std + alloc` and dependency-free in every configuration.
+
+## Compatibility
+
+| | Supported |
+| --- | --- |
+| Rust | {{ toolchain.msrv }}, edition {{ toolchain.edition }} |
+| Host platforms | Linux and Windows, both in the `clippy` and `test` matrices |
+| Bare metal | `thumbv7em-none-eabi`, built in CI with the default features off |
+
+Newline normalisation is a line-endings behaviour, which is why the matrices exist rather than one
+runner standing in for the other.
+
+## Documentation
+
+| Document | Purpose |
+| --- | --- |
+| [crates/csp-shell/README.md](crates/csp-shell/README.md) | The scanner, the nonce obligations, the presets, and detecting a shell that changed under a running process |
+| [crates/csp-policy/README.md](crates/csp-policy/README.md) | Why every term is a type, which directives are covered, and why rendering is infallible |
+{{#each docs}}| [{{ path }}]({{ path }}) | {{ default (mdCell summary) "—" }} |
+{{/each}}
+The API documentation is not on docs.rs, because nothing here is published to crates.io. Render it
+locally with `cargo doc --workspace --all-features --open`.
+
+## Contributing
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org). The path a
+commit touches decides which crate it bumps: `crates/csp-shell` moves the `csp-shell-v…` tag,
+`crates/csp-policy` moves its own, and release-please rewrites the version requirement between
+them so the pair cannot disagree about which release is being built.
+
+Every gate a pull request has to pass is in [.github/workflows/ci.yml](.github/workflows/ci.yml),
+and all of them run locally:
 
 ```bash
 cargo fmt --all --check
 cargo hack --workspace --feature-powerset clippy --all-targets -- -D warnings
 cargo hack --workspace --each-feature test
 cargo test --workspace --all-features
-cargo build -p csp-shell --no-default-features --target thumbv7em-none-eabi   # the no_std core
+cargo build -p csp-shell --no-default-features --target thumbv7em-none-eabi
 cargo deny check
 ```
 
-Fuzzing lives in its own workspace under each crate's `fuzz/`. The oracles are an ordinary
-library there, so the committed seeds and the deterministic sweeps replay on a plain `cargo test`
-without a sanitizer and without nightly:
+Fuzzing lives in a workspace of its own under each crate's `fuzz/`. The oracles are an ordinary
+library there, so the committed seeds and a deterministic sweep through them replay on a plain
+`cargo test`, with no sanitizer and no nightly:
 
 ```bash
 cd crates/csp-policy/fuzz && cargo test
-cd ../../csp-shell/fuzz  && cargo test
+cd crates/csp-shell/fuzz  && cargo test
 ```
 
-A campaign — the part that discovers new inputs rather than re-checking known ones — does need
-nightly, and is described in [`crates/csp-shell/README.md`](crates/csp-shell/README.md).
+A campaign discovers inputs rather than re-checking known ones, needs nightly, and is described in
+[crates/csp-shell/README.md](crates/csp-shell/README.md).
 
-`README.md` is generated. Edit `.github/templates/README.md.hbs` instead: CI renders every README
-on each pull request and commits the result back to the branch, and a push to `main` whose
-committed files do not match their templates fails.
+This file is generated. Edit
+[.github/templates/README.md.hbs](.github/templates/README.md.hbs) instead; CI renders it on every
+pull request and commits the result back to the branch.
+
+## Security
+
+Report a vulnerability through [the private advisory form]({{ repo.url }}/security/advisories/new)
+rather than a public issue.
+
+`cargo deny check` gates the advisory database on every pull request. zizmor audits the workflows
+themselves under its pedantic persona, on every pull request and again weekly, because they are
+the one body of code here with write access to the repository.
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+{{ repo.license }}. See [LICENSE](LICENSE).
