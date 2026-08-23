@@ -69,32 +69,49 @@ jobs:
           ref: ${{ github.head_ref }}
           persist-credentials: false
 
-      - name: Collect README variables
-        id: variables
+      - name: Generate the version payload
+        id: config
         # Invoked through `bash` rather than executed: the repository is authored on Windows,
         # where git does not record the executable bit.
-        run: echo "json=$(bash .github/scripts/readme-variables.sh)" >> "$GITHUB_OUTPUT"
+        run: |
+          set -euo pipefail
+          json="$(bash .github/scripts/readme-variables.sh)"
+          echo "json=${json}" >> "$GITHUB_OUTPUT"
+
+      # The repository facts the three templates share: name, description, licence, links and the
+      # docs index. `manifest` names a member because the workspace root is a virtual manifest
+      # with no `[package]` table for the action to read. `branch` is the default branch rather
+      # than the action's `github.ref_name` default, which on a pull request is `<number>/merge`
+      # and would put that into the CI badge's query string.
+      - name: Collect the README payload
+        id: variables
+        uses: TimSchoenle/actions/actions/common/readme-variables@b5b5c9e047f00ffa00b7772536c8bdb4f158f706 # tag=actions-common-readme-variables-v1.1.0
+        with:
+          manifest: crates/csp-shell/Cargo.toml
+          branch: ${{ github.event.repository.default_branch }}
+          tag-prefix: csp-shell-v
+          extra: ${{ steps.config.outputs.json }}
 
       - name: Render the workspace README
         uses: TimSchoenle/actions/actions/common/render-template@3b7d152374ee63e720e7c16bed8b088b40554911 # tag=actions-common-render-template-v1.1.1
         with:
           template: .github/templates/README.md.hbs
           output: README.md
-          variables: ${{ steps.variables.outputs.json }}
+          variables: ${{ steps.variables.outputs.variables }}
 
       - name: Render the csp-shell README
         uses: TimSchoenle/actions/actions/common/render-template@3b7d152374ee63e720e7c16bed8b088b40554911 # tag=actions-common-render-template-v1.1.1
         with:
           template: .github/templates/csp-shell.README.md.hbs
           output: crates/csp-shell/README.md
-          variables: ${{ steps.variables.outputs.json }}
+          variables: ${{ steps.variables.outputs.variables }}
 
       - name: Render the csp-policy README
         uses: TimSchoenle/actions/actions/common/render-template@3b7d152374ee63e720e7c16bed8b088b40554911 # tag=actions-common-render-template-v1.1.1
         with:
           template: .github/templates/csp-policy.README.md.hbs
           output: crates/csp-policy/README.md
-          variables: ${{ steps.variables.outputs.json }}
+          variables: ${{ steps.variables.outputs.variables }}
 
       - name: Commit the rendered READMEs
         id: readmes
@@ -136,9 +153,24 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Collect README variables
+      - name: Generate the version payload
+        id: config
+        run: |
+          set -euo pipefail
+          json="$(bash .github/scripts/readme-variables.sh)"
+          echo "json=${json}" >> "$GITHUB_OUTPUT"
+
+      # Same two inputs as in `render`, for the same two reasons. `branch` in particular has to
+      # agree across the jobs, or the badge URL this one renders would differ from the one the
+      # pull request committed and the gate would fail on every merge.
+      - name: Collect the README payload
         id: variables
-        run: echo "json=$(bash .github/scripts/readme-variables.sh)" >> "$GITHUB_OUTPUT"
+        uses: TimSchoenle/actions/actions/common/readme-variables@b5b5c9e047f00ffa00b7772536c8bdb4f158f706 # tag=actions-common-readme-variables-v1.1.0
+        with:
+          manifest: crates/csp-shell/Cargo.toml
+          branch: ${{ github.event.repository.default_branch }}
+          tag-prefix: csp-shell-v
+          extra: ${{ steps.config.outputs.json }}
 
       # Each writes nothing; each fails with the first differing line when its output is stale.
       - name: Verify README.md is current
@@ -146,7 +178,7 @@ jobs:
         with:
           template: .github/templates/README.md.hbs
           output: README.md
-          variables: ${{ steps.variables.outputs.json }}
+          variables: ${{ steps.variables.outputs.variables }}
           check: true
 
       - name: Verify crates/csp-shell/README.md is current
@@ -154,7 +186,7 @@ jobs:
         with:
           template: .github/templates/csp-shell.README.md.hbs
           output: crates/csp-shell/README.md
-          variables: ${{ steps.variables.outputs.json }}
+          variables: ${{ steps.variables.outputs.variables }}
           check: true
 
       - name: Verify crates/csp-policy/README.md is current
@@ -162,5 +194,5 @@ jobs:
         with:
           template: .github/templates/csp-policy.README.md.hbs
           output: crates/csp-policy/README.md
-          variables: ${{ steps.variables.outputs.json }}
+          variables: ${{ steps.variables.outputs.variables }}
           check: true

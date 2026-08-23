@@ -7,7 +7,10 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Build a Content-Security-Policy from the app shell you actually serve — inline-script hashes, computed the way the HTML parser computes them, plus per-response nonces and presets for Cloudflare, Google, Stripe, Sentry and more."
+# Read by the README payload and by the repository's own description, which is set to match it
+# byte for byte. GitHub's description field is the shorter of the two consumers, so this is
+# written to its budget rather than to what crates.io would display.
+description = "Content-Security-Policy built from the app shell you serve: inline-script hashes, per-response nonces and presets."
 documentation = "https://docs.rs/csp-shell"
 readme = "README.md"
 keywords = ["csp", "security-headers", "spa", "cloudflare"]
