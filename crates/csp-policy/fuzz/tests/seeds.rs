@@ -29,7 +29,7 @@ fn input_dir(kind: &str, target: &str) -> PathBuf {
         .join(target)
 }
 
-/// Run every file in `dir` through `oracle`, returning how many were replayed.
+/// Runs every file in `dir` through `oracle`, returning how many were replayed.
 ///
 /// A directory that does not exist is not a failure: `corpus/` is where a campaign writes, and a
 /// fresh clone has none.
@@ -56,7 +56,7 @@ fn replay(dir: &Path, oracle: Oracle) -> usize {
     replayed
 }
 
-/// Replay a target whose inputs are text a human can author, and insist there are some.
+/// Replays a target whose inputs are text a human can author, and insists there are some.
 fn replay_seeded(target: &str, oracle: Oracle) {
     let seeds = replay(&input_dir("seeds", target), oracle);
     assert!(
@@ -168,7 +168,7 @@ mod generated {
         "%0d%0a",
     ];
 
-    /// Build one input from one to three concatenated fragments.
+    /// Builds one input from one to three concatenated fragments.
     fn generate(rng: &mut Rng) -> Vec<u8> {
         let fragments = 1 + rng.next() % 3;
         let mut input = String::new();
@@ -202,7 +202,7 @@ mod generated {
             .unwrap_or(DEFAULT_ITERATIONS)
     }
 
-    /// Run `oracle` over the generated inputs, naming the one that fails.
+    /// Runs `oracle` over the generated inputs, naming the one that fails.
     ///
     /// `catch_unwind` rather than a panic hook: a hook is process-global, these tests run in
     /// parallel, and the input it printed would belong to whichever sweep installed it last.

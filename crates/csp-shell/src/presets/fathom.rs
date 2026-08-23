@@ -17,13 +17,13 @@ pub(crate) const CLOUD: Origins = &[
 /// The directives a Fathom host has to appear in, whichever host it is.
 const DIRECTIVES: &[csp_policy::SourceDirective] = &[ScriptSrc, ConnectSrc, ImgSrc];
 
-/// Admit Fathom's CDN host.
+/// Admits Fathom's CDN host.
 #[must_use]
 pub fn cloud(csp: Csp) -> Csp {
     admit(csp, CLOUD)
 }
 
-/// Admit a Fathom custom domain, which replaces the CDN host rather than adding to it.
+/// Admits a Fathom custom domain, which replaces the CDN host rather than adding to it.
 ///
 /// Call this *instead of* [`cloud`]. Calling both admits an origin the deployment does not use,
 /// which is not dangerous and is not tidy either.

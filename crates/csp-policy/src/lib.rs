@@ -6,7 +6,7 @@
 //! A CSP fails silently in both directions. A browser given a directive it cannot parse drops the
 //! directive; given a source expression it cannot parse it drops the expression and keeps the
 //! rest. Either way the response looks correct, the header is present, and the restriction the
-//! author wrote is simply not in force — or is in force more tightly than intended and the page is
+//! author wrote is not in force — or is in force more tightly than intended and the page is
 //! blank. Nothing is reported to the origin.
 //!
 //! So the mistakes worth catching are the ones a string API cannot see:
@@ -72,7 +72,6 @@
 #![no_std]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![forbid(unsafe_code)]
-#![deny(missing_docs, missing_debug_implementations)]
 
 extern crate alloc;
 

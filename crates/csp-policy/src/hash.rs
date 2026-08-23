@@ -63,7 +63,7 @@ impl HashAlgorithm {
         self.digest_len().div_ceil(3) * 4
     }
 
-    /// Parse an algorithm name, case-insensitively.
+    /// Parses an algorithm name, case-insensitively.
     ///
     /// # Errors
     ///
@@ -174,7 +174,7 @@ impl HashSource {
         Ok(Self { algorithm, value })
     }
 
-    /// Parse a hash source, with or without its surrounding quotes.
+    /// Parses a hash source, with or without its surrounding quotes.
     ///
     /// # Errors
     ///
@@ -243,7 +243,7 @@ impl NonceSource {
         Self(base64::encode(bytes))
     }
 
-    /// Parse a nonce, with or without its `nonce-` prefix and surrounding quotes.
+    /// Parses a nonce, with or without its `nonce-` prefix and surrounding quotes.
     ///
     /// # Errors
     ///
@@ -292,8 +292,8 @@ impl FromStr for NonceSource {
     }
 }
 
-/// Strip one layer of `'…'`, so a parser accepts a source expression as it appears in a header as
-/// well as the bare value inside it.
+/// Strips one layer of `'…'`, so a parser accepts a source expression as it appears in a header
+/// as well as the bare value inside it.
 fn unquote(source: &str) -> &str {
     source
         .strip_prefix('\'')

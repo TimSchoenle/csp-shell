@@ -63,23 +63,27 @@ pub(crate) const RECAPTCHA: Origins = &[
     (FrameSrc, &["https://www.google.com/recaptcha/"]),
 ];
 
-/// Admit the Tag Manager container loader in `script-src`.
+/// Admits the Tag Manager container loader in `script-src`.
 ///
 /// This is the loader only. A container that loads Google Analytics needs [`analytics`] as well,
 /// and a container that loads a third party needs that third party's origins — a preset cannot
 /// know what a container was configured to do, and pretending otherwise would be the worst kind
 /// of allowance: one that looks specific and is not.
 ///
-/// A Custom HTML tag injects **inline** script, which no host allowance admits. That needs
-/// [`tag_manager_nonce`].
+/// A Custom HTML tag injects **inline** script, which no host allowance admits.
+#[cfg_attr(feature = "nonce", doc = "That needs [`tag_manager_nonce`].")]
+#[cfg_attr(
+    not(feature = "nonce"),
+    doc = "That needs `tag_manager_nonce`, behind the `nonce` feature."
+)]
 #[must_use]
 pub fn tag_manager(csp: Csp) -> Csp {
     admit(csp, TAG_MANAGER)
 }
 
-/// Reserve the per-response nonce slot for the inline script Tag Manager injects.
+/// Reserves the per-response nonce slot for the inline script Tag Manager injects.
 ///
-/// # This one is not free, and the difference from Cloudflare matters
+/// # Stamping the nonce into the shell
 ///
 /// Cloudflare reads the nonce out of the response header. Tag Manager does not: it reads it off
 /// **its own loader element** — `document.currentScript.nonce` — and copies that onto the script
@@ -119,7 +123,7 @@ pub fn tag_manager_nonce(csp: Csp) -> Csp {
     csp.per_response_nonce(true)
 }
 
-/// Admit Google Analytics 4: the `gtag.js` host, the regional measurement endpoints, and the
+/// Admits Google Analytics 4: the `gtag.js` host, the regional measurement endpoints, and the
 /// pixel fallback.
 ///
 /// Scoped to plain GA4. Google Signals, Ads remarketing and conversion linking add
@@ -131,7 +135,7 @@ pub fn analytics(csp: Csp) -> Csp {
     admit(csp, ANALYTICS)
 }
 
-/// Admit Google Fonts: `fonts.googleapis.com` in `style-src`, `fonts.gstatic.com` in `font-src`.
+/// Admits Google Fonts: `fonts.googleapis.com` in `style-src`, `fonts.gstatic.com` in `font-src`.
 ///
 /// Two hosts because the stylesheet and the font files it references are served from different
 /// origins. Admitting the first without the second gives a page with the right metrics and no
@@ -143,7 +147,7 @@ pub fn fonts(csp: Csp) -> Csp {
     admit(csp, FONTS)
 }
 
-/// Admit reCAPTCHA v2 and v3: the API script, the widget frame, and the `gstatic.com` payload.
+/// Admits reCAPTCHA v2 and v3: the API script, the widget frame, and the `gstatic.com` payload.
 ///
 /// Both script origins are path-scoped to `/recaptcha/`, so this does not admit the rest of what
 /// `google.com` and `gstatic.com` serve.

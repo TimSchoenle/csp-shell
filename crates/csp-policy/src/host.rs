@@ -23,7 +23,7 @@ use crate::error::{ParseError, Term};
 pub struct SchemeName(String);
 
 impl SchemeName {
-    /// Parse and lowercase a scheme name.
+    /// Parses a scheme name, lowercasing it.
     ///
     /// # Errors
     ///
@@ -121,7 +121,7 @@ impl Scheme {
         }
     }
 
-    /// Parse a scheme, with or without its trailing colon, case-insensitively.
+    /// Parses a scheme, with or without its trailing colon, case-insensitively.
     ///
     /// # Errors
     ///
@@ -164,7 +164,7 @@ impl FromStr for Scheme {
 pub struct HostName(String);
 
 impl HostName {
-    /// Parse and lowercase a host name.
+    /// Parses a host name, lowercasing it.
     ///
     /// # Errors
     ///
@@ -263,7 +263,7 @@ impl fmt::Display for PortPattern {
 pub struct PathPart(String);
 
 impl PathPart {
-    /// Parse an absolute path.
+    /// Parses an absolute path.
     ///
     /// # Errors
     ///
@@ -356,7 +356,7 @@ impl HostSource {
         }
     }
 
-    /// Parse a host source.
+    /// Parses a host source.
     ///
     /// # Errors
     ///

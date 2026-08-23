@@ -129,7 +129,7 @@ impl Source {
         })
     }
 
-    /// Parse a source expression.
+    /// Parses a source expression.
     ///
     /// # Errors
     ///
@@ -317,7 +317,7 @@ impl SourceList {
         self.sources().contains(source)
     }
 
-    /// Add an expression unless it is already present.
+    /// Adds an expression unless it is already present.
     ///
     /// Adding to `'none'` replaces it: a list cannot hold `'none'` alongside anything else, and
     /// the caller's intent in adding a source to a directive that currently permits nothing is to
@@ -329,7 +329,7 @@ impl SourceList {
         }
     }
 
-    /// Keep only the expressions `keep` accepts.
+    /// Keeps only the expressions `keep` accepts.
     ///
     /// A list emptied this way still matches nothing and still renders as `'none'`, which is the
     /// same policy an empty list always described. Removing the last source expression from a
@@ -341,7 +341,7 @@ impl SourceList {
         }
     }
 
-    /// Remove one expression, reporting whether it was there.
+    /// Removes one expression, reporting whether it was there.
     ///
     /// The counterpart to [`SourceList::push`], for narrowing a list that was handed over rather
     /// than assembled — dropping one scheme from a preset without restating the rest of it.
@@ -422,7 +422,7 @@ impl AncestorSource {
         HostSource::parse(host).map(Self::Host)
     }
 
-    /// Parse an ancestor source expression.
+    /// Parses an ancestor source expression.
     ///
     /// # Errors
     ///
@@ -494,7 +494,7 @@ impl AncestorSourceList {
         }
     }
 
-    /// Add an expression unless it is already present. Adding to `'none'` replaces it.
+    /// Adds an expression unless it is already present. Adding to `'none'` replaces it.
     pub fn push(&mut self, source: AncestorSource) {
         match self {
             Self::None => *self = Self::Sources(alloc::vec![source]),

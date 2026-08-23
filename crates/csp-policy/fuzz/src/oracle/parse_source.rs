@@ -11,7 +11,7 @@ use csp_policy::{Directive, Policy, Source, SourceDirective};
 
 use crate::support;
 
-/// Parse `data` as a source expression and assert every property its rendered form must have.
+/// Parses `data` as a source expression and asserts every property its rendered form must have.
 ///
 /// # Panics
 ///

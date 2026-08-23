@@ -14,7 +14,14 @@
 //! | Kind | Naming | What it does | Obligation on the caller |
 //! |---|---|---|---|
 //! | **Origins** | a noun — [`google::fonts`], [`stripe::elements`] | appends host sources | none |
-//! | **Nonce** | a `_nonce` suffix — [`cloudflare::script_nonce`], [`google::tag_manager_nonce`] | reserves the per-response nonce slot | `Cache-Control: no-cache`, and for some services stamping [`Headers::nonce`](crate::Headers::nonce) into the shell |
+#![cfg_attr(
+    feature = "nonce",
+    doc = "| **Nonce** | a `_nonce` suffix — [`cloudflare::script_nonce`], [`google::tag_manager_nonce`] | reserves the per-response nonce slot | `Cache-Control: no-cache`, and for some services stamping [`Headers::nonce`](crate::Headers::nonce) into the shell |"
+)]
+#![cfg_attr(
+    not(feature = "nonce"),
+    doc = "| **Nonce** | a `_nonce` suffix, behind the `nonce` feature | reserves the per-response nonce slot | `Cache-Control: no-cache`, and for some services stamping the minted value into the shell |"
+)]
 //!
 //! Conflating them ships a policy that looks nonce-protected and is not. A nonce preset costs a
 //! per-response header render and a cache obligation; an origins preset costs neither, and no
@@ -65,7 +72,7 @@ pub mod stripe;
 /// this module tree and hold its literals to account — see the tests at the foot of this file.
 pub(crate) type Origins = &'static [(SourceDirective, &'static [&'static str])];
 
-/// Admit every origin in `origins`, in the directives the table names.
+/// Admits every origin in `origins`, in the directives the table names.
 pub(crate) fn admit(csp: Csp, origins: Origins) -> Csp {
     origins.iter().fold(csp, |csp, (directive, literals)| {
         csp.extend_unrouted(
@@ -75,7 +82,7 @@ pub(crate) fn admit(csp: Csp, origins: Origins) -> Csp {
     })
 }
 
-/// Admit one caller-supplied origin in each of `directives`.
+/// Admits one caller-supplied origin in each of `directives`.
 ///
 /// For the services whose host is deployment-specific — a Sentry ingest endpoint, a self-hosted
 /// analytics instance. The preset still owns the part that is not deployment-specific, which is
@@ -96,7 +103,7 @@ pub(crate) fn admit_origin(
     }))
 }
 
-/// Parse one of this crate's own origin literals.
+/// Parses one of this crate's own origin literals.
 ///
 /// A literal that stopped parsing is a bug in this crate, not a condition a caller can handle;
 /// dropping it keeps the policy valid and renderable while the test below fails.

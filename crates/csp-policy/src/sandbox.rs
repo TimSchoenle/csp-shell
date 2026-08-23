@@ -90,7 +90,7 @@ impl SandboxToken {
         }
     }
 
-    /// Parse a token, case-insensitively.
+    /// Parses a token, case-insensitively.
     ///
     /// # Errors
     ///

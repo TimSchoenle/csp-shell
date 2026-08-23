@@ -37,7 +37,7 @@ impl Webrtc {
         }
     }
 
-    /// Parse a value, with or without quotes, case-insensitively.
+    /// Parses a value, with or without quotes, case-insensitively.
     ///
     /// # Errors
     ///
@@ -184,7 +184,7 @@ impl Directive {
         }
     }
 
-    /// Add a source expression, if this is a source-list directive that does not already have it.
+    /// Adds a source expression, if this is a source-list directive that does not already have it.
     ///
     /// Returns whether the directive takes source expressions at all, so a caller that reached
     /// here from a parsed name learns that `sandbox` is not one rather than silently doing
@@ -199,7 +199,7 @@ impl Directive {
         }
     }
 
-    /// Append this directive's rendered form to `out`.
+    /// Appends this directive's rendered form to `out`.
     ///
     /// Rendering cannot fail and cannot emit a separator: every component was validated when it
     /// was built, and the only bytes this method writes itself are the single spaces between a
@@ -239,7 +239,7 @@ fn write_space_separated<T: fmt::Display>(f: &mut fmt::Formatter<'_>, values: &[
     Ok(())
 }
 
-/// Collect in order, dropping repeats.
+/// Collects in order, dropping repeats.
 fn deduplicated<T: PartialEq>(values: impl IntoIterator<Item = T>) -> Vec<T> {
     let mut collected = Vec::new();
     for value in values {

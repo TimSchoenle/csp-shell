@@ -14,7 +14,7 @@ use crate::Csp;
 /// fallback requests the same endpoint as an image.
 const DIRECTIVES: &[csp_policy::SourceDirective] = &[ScriptSrc, ConnectSrc, ImgSrc];
 
-/// Admit a Matomo instance: `https://analytics.example.com`, or the Matomo Cloud subdomain.
+/// Admits a Matomo instance: `https://analytics.example.com`, or the Matomo Cloud subdomain.
 ///
 /// `img-src` is included for the `<noscript>` fallback, which is a plain `<img>` request to the
 /// tracking endpoint. Omitting it is invisible in every browser that runs script, which is every

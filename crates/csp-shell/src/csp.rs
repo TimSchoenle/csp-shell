@@ -44,14 +44,15 @@ impl Csp {
         Self::default()
     }
 
-    /// The policy this crate was extracted from: `default-src 'self'`,
-    /// `script-src 'self' 'wasm-unsafe-eval'`, `style-src 'self' 'unsafe-inline'`,
-    /// `connect-src 'self'`, `img-src 'self' https: data:`, `font-src 'self' data:`,
-    /// `object-src 'none'`, `base-uri 'none'`, `form-action 'self'`,
+    /// The policy this crate was extracted from: a WASM single-page application on one origin.
+    ///
+    /// `default-src 'self'`, `script-src 'self' 'wasm-unsafe-eval'`,
+    /// `style-src 'self' 'unsafe-inline'`, `connect-src 'self'`, `img-src 'self' https: data:`,
+    /// `font-src 'self' data:`, `object-src 'none'`, `base-uri 'none'`, `form-action 'self'`,
     /// `frame-ancestors 'none'`.
     ///
-    /// Note the absence of `'unsafe-eval'`: WASM compilation under this policy requires <!-- csp-lint: allow — an exclusion cannot be documented without naming what is excluded -->
-    /// Chrome 97+, Firefox 102+ or Safari 16.4+. A deliberate exclusion, asserted by a unit test.
+    /// `'unsafe-eval'` is absent, so WASM compilation needs Chrome 97+, Firefox 102+ or <!-- csp-lint: allow — an exclusion cannot be documented without naming what is excluded -->
+    /// Safari 16.4+. A deliberate exclusion, asserted by a unit test.
     #[must_use]
     pub fn spa_wasm() -> Self {
         use SourceDirective::{
@@ -88,7 +89,7 @@ impl Csp {
         }
     }
 
-    /// Set a source-list directive, replacing any existing one of the same name.
+    /// Sets a source-list directive, replacing any existing one of the same name.
     ///
     /// The replacement keeps the original directive's position, so a policy's order is the order
     /// its directives were first introduced.
@@ -133,7 +134,7 @@ impl Csp {
         Ok(self)
     }
 
-    /// Append source expressions to a directive, creating it if absent.
+    /// Appends source expressions to a directive, creating it if absent.
     ///
     /// Sources already present are not appended twice; a repeated source expression lengthens
     /// every response without changing what the policy permits.
@@ -153,7 +154,7 @@ impl Csp {
         Ok(self)
     }
 
-    /// Set any directive, including the ones whose value is not a source list — `sandbox`,
+    /// Sets any directive, including the ones whose value is not a source list — `sandbox`,
     /// `webrtc`, `trusted-types`, the reporting directives.
     ///
     /// # Errors
@@ -183,7 +184,7 @@ impl Csp {
         Ok(self)
     }
 
-    /// Remove a directive entirely, so the policy stops saying anything about it.
+    /// Removes a directive entirely, so the policy stops saying anything about it.
     ///
     /// Not the same as setting it to an empty list: `img-src 'none'` blocks every image, while an
     /// absent `img-src` falls back to `default-src`. Both are reachable, and confusing one for the
@@ -211,7 +212,7 @@ impl Csp {
         self
     }
 
-    /// Remove one source expression from a directive, leaving the rest of the list alone.
+    /// Removes one source expression from a directive, leaving the rest of the list alone.
     ///
     /// For tuning a preset without restating it: a list restated in full stops tracking the preset,
     /// so a source added by a later version of this crate is silently dropped. A directive this
@@ -237,7 +238,7 @@ impl Csp {
         self.retain_sources(directive, |existing| existing != source)
     }
 
-    /// Keep only the source expressions `keep` accepts, for a directive the policy already sets.
+    /// Keeps only the source expressions `keep` accepts, for a directive the policy already sets.
     ///
     /// The general form of [`Csp::remove_source`], for a rule rather than a value — dropping every
     /// scheme source, or every host outside one origin. A no-op if the directive is absent: there
@@ -255,16 +256,16 @@ impl Csp {
         self
     }
 
-    /// The policy as it stands, for a consumer that wants to read it rather than extend it.
+    /// The policy as it stands.
     #[must_use]
     pub const fn policy(&self) -> &TypedPolicy {
         &self.policy
     }
 
-    /// Add the shell's inline-script hashes to `script-src`.
+    /// Adds the shell's inline-script hashes to `script-src`.
     ///
-    /// `script-src` is created if absent, seeded from `default-src` — see
-    /// [`Csp::per_response_nonce`] for why that seeding is a no-op rather than a policy change.
+    /// `script-src` is created if absent, seeded from the sources it was inheriting through
+    /// `default-src`, so creating it permits what the policy permitted before plus the hashes.
     ///
     /// Adding a hash does not disable `'self'` or any other host source; under CSP a script runs
     /// if it matches *any* source expression. It does disable `'unsafe-inline'`, which is the
@@ -279,7 +280,7 @@ impl Csp {
         self
     }
 
-    /// Admit `'unsafe-eval'` in `script-src`. Needed for WASM compilation on Safari before 16.4, <!-- csp-lint: allow — the method exists to be the one named token for this source expression -->
+    /// Admits `'unsafe-eval'` in `script-src`. Needed for WASM compilation on Safari before 16.4, <!-- csp-lint: allow — the method exists to be the one named token for this source expression -->
     /// and nowhere else.
     ///
     /// Deliberately a named method rather than a source expression [`Csp::directive`] would
@@ -290,7 +291,7 @@ impl Csp {
         self.push_script_source(Source::UnsafeEval)
     }
 
-    /// Admit `'unsafe-inline'` in `script-src`. A no-op wherever hashes or a nonce are
+    /// Admits `'unsafe-inline'` in `script-src`. A no-op wherever hashes or a nonce are
     /// present, which is everywhere this crate is useful.
     ///
     /// Do not reach for this as a compatibility fallback: any browser that understands hashes or
@@ -301,7 +302,7 @@ impl Csp {
         self.push_script_source(Source::UnsafeInline)
     }
 
-    /// Add `'strict-dynamic'` to `script-src`, which disables host source expressions for
+    /// Adds `'strict-dynamic'` to `script-src`, which disables host source expressions for
     /// scripts. `'self'` stops matching `<script src>` in the shell.
     ///
     /// A named method for a different reason than the other two: a policy acquires
@@ -312,7 +313,7 @@ impl Csp {
         self.push_script_source(Source::StrictDynamic)
     }
 
-    /// Reserve a per-response nonce slot in `script-src`.
+    /// Reserves a per-response nonce slot in `script-src`.
     ///
     /// See the `presets` module for the services that need one, and for the difference between
     /// those that read the nonce out of the response header and those that need it stamped into
@@ -325,9 +326,8 @@ impl Csp {
     /// plus the nonce. Without the seeding the nonce would either tighten the policy silently or
     /// be dropped silently, and both of those are this crate's own failure mode.
     ///
-    /// Deferring that to `build` is what makes the slot order-independent: reserving it before
-    /// `default-src` is set seeds from the `default-src` that ends up in the policy, not from the
-    /// absent one.
+    /// The slot is order-independent: reserving it before `default-src` is set still seeds from
+    /// the `default-src` that ends up in the policy.
     #[cfg(feature = "nonce")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nonce")))]
     #[must_use]
@@ -336,7 +336,7 @@ impl Csp {
         self
     }
 
-    /// Render the policy.
+    /// Renders the policy.
     ///
     /// Infallible: the rendered value is assembled from types that were checked when they were
     /// built, so it is ASCII, free of any `;` the builder did not emit itself, and a valid HTTP
@@ -355,7 +355,7 @@ impl Csp {
         }
     }
 
-    /// Render into the two halves a nonce is spliced between.
+    /// Renders into the two halves a nonce is spliced between.
     ///
     /// Infallible, because it establishes what it needs: `script-src` is created here rather than
     /// only where the nonce slot is reserved, so the invariant does not depend on call order. A
@@ -399,7 +399,7 @@ impl Csp {
         Rendered::PerResponse { head, tail }
     }
 
-    /// Append source expressions supplied by this crate's own presets.
+    /// Appends source expressions supplied by this crate's own presets.
     ///
     /// Infallible where [`Csp::extend`] is not, because the sources come from literals in this
     /// crate rather than from a caller: none of them is a routed keyword, and the debug assertion
@@ -424,7 +424,7 @@ impl Csp {
         self
     }
 
-    /// Add one source to `script-src`, creating it from `default-src`'s sources if absent.
+    /// Adds one source to `script-src`, creating it from `default-src`'s sources if absent.
     fn push_script_source(mut self, source: Source) -> Self {
         self.ensure_script_src();
         self.policy
@@ -432,12 +432,12 @@ impl Csp {
         self
     }
 
-    /// Create `script-src` from `default-src`'s sources if it is absent.
+    /// Creates `script-src` from `default-src`'s sources if it is absent.
     fn ensure_script_src(&mut self) {
         self.ensure_seeded(SourceDirective::ScriptSrc);
     }
 
-    /// Create `directive` from whatever it was falling back to, if the policy does not set it.
+    /// Creates `directive` from whatever it was falling back to, if the policy does not set it.
     ///
     /// Appending to an absent directive would otherwise *narrow* the policy: before the append a
     /// browser resolved it through the fallback chain, and afterwards it does not. Seeding with
@@ -497,7 +497,7 @@ const ROUTED_SOURCES: &[(Source, &str, Option<SourceDirective>)] = &[
     ),
 ];
 
-/// Refuse the routed source expressions before any of them is stored.
+/// Refuses the routed source expressions before any of them is stored.
 fn check_routing(directive: SourceDirective, sources: &[Source]) -> Result<(), CspError> {
     for (routed, method, only_in) in ROUTED_SOURCES {
         if let Some(only) = *only_in {
@@ -572,13 +572,16 @@ pub struct Headers {
 }
 
 impl Policy {
-    /// Render for one response, minting a nonce if a slot is reserved.
-    ///
-    /// # Panics
-    ///
-    /// Only through [`Nonce::mint`](crate::Nonce::mint), and only if the operating system's
-    /// CSPRNG is unavailable — a condition under which continuing would mean serving a guessable
-    /// nonce.
+    /// Renders for one response, minting a nonce if a slot is reserved.
+    #[cfg_attr(
+        feature = "nonce",
+        doc = r"
+# Panics
+
+Only through [`Nonce::mint`](crate::Nonce::mint), and only if the operating system's CSPRNG is
+unavailable — a condition under which continuing would mean serving a guessable nonce.
+"
+    )]
     #[must_use]
     pub fn headers(&self) -> Headers {
         match &self.rendered {

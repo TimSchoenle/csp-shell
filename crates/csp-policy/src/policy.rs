@@ -43,7 +43,7 @@ impl Policy {
         }
     }
 
-    /// Set a directive, replacing any existing one of the same name in place.
+    /// Sets a directive, replacing any existing one of the same name in place.
     ///
     /// Replacement keeps the original's position, so a policy's order stays the order its
     /// directives were introduced rather than the order they were last edited.
@@ -62,7 +62,7 @@ impl Policy {
         self
     }
 
-    /// Add source expressions to a directive, creating it if it is absent.
+    /// Adds source expressions to a directive, creating it if it is absent.
     ///
     /// Sources already present are not added twice, and adding to a `'none'` list replaces the
     /// `'none'` — a list cannot hold it alongside anything else.
@@ -108,7 +108,7 @@ impl Policy {
         self.position(name).is_some()
     }
 
-    /// Remove the directive stored under `name`, keeping the order of the rest.
+    /// Removes the directive stored under `name`, keeping the order of the rest.
     pub fn remove(&mut self, name: DirectiveName) -> Option<Directive> {
         self.position(name)
             .map(|index| self.directives.remove(index))
@@ -131,7 +131,7 @@ impl Policy {
         self.directives.is_empty()
     }
 
-    /// Render the policy as a `Content-Security-Policy` header value.
+    /// Renders the policy as a `Content-Security-Policy` header value.
     ///
     /// Infallible, and that is a property of the types rather than of this function: every
     /// component was checked when it was built, so there is no input here that could put a `;`,

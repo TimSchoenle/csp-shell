@@ -9,7 +9,7 @@
 use arbitrary::{Arbitrary, Unstructured};
 use csp_shell::{Csp, CspError, Source, SourceDirective};
 
-/// Decode `data` into a directive index and a list of source texts, then build with them.
+/// Decodes `data` into a directive index and a list of source texts, then builds with them.
 ///
 /// The decode is `arbitrary_take_rest` over the raw bytes, which is exactly what
 /// `libfuzzer_sys::fuzz_target!` does for a typed argument — so a corpus entry a campaign found
@@ -26,8 +26,8 @@ pub fn check(data: &[u8]) {
     run(index, &texts);
 }
 
-/// Parse `texts` as source expressions, set them on the directive `index` selects, and assert the
-/// header that renders.
+/// Parses `texts` as source expressions, sets them on the directive `index` selects, and asserts
+/// the header that renders.
 ///
 /// # Panics
 ///

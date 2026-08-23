@@ -30,7 +30,7 @@ fn input_dir(kind: &str, target: &str) -> PathBuf {
         .join(target)
 }
 
-/// Run every file in `dir` through `oracle`, returning how many were replayed.
+/// Runs every file in `dir` through `oracle`, returning how many were replayed.
 ///
 /// A directory that does not exist is not a failure: `corpus/` is where a campaign writes, and a
 /// fresh clone has none.
@@ -193,7 +193,7 @@ mod generated {
         "</style>",
     ];
 
-    /// Build one document of up to four elements.
+    /// Builds one document of up to four elements.
     fn document(rng: &mut Rng) -> String {
         let elements = 1 + rng.below(4);
         let mut html = String::new();
@@ -347,7 +347,7 @@ mod generated {
             .unwrap_or(DEFAULT_ITERATIONS)
     }
 
-    /// Run `body` over the iteration budget, naming the iteration that fails.
+    /// Runs `body` over the iteration budget, naming the iteration that fails.
     ///
     /// `catch_unwind` rather than a panic hook: a hook is process-global, these tests run in
     /// parallel, and the input it printed would belong to whichever sweep installed it last.

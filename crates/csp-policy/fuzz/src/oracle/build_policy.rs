@@ -120,7 +120,7 @@ fn directive_name(index: u8) -> DirectiveName {
     DirectiveName::ALL[usize::from(index) % DirectiveName::ALL.len()]
 }
 
-/// Decode `data` into a sequence of builder calls and assert the policy they produce.
+/// Decodes `data` into a sequence of builder calls and asserts the policy they produce.
 ///
 /// The decode is `arbitrary_take_rest` over the raw bytes, which is exactly what
 /// `libfuzzer_sys::fuzz_target!` does for a typed argument — so a corpus entry a campaign found
@@ -129,7 +129,7 @@ fn directive_name(index: u8) -> DirectiveName {
 /// # Panics
 ///
 /// If the assembled policy renders to something outside the structural contract in
-/// [`check_structure`].
+/// `check_structure`.
 pub fn check(data: &[u8]) {
     let Ok(operations) = Vec::<Operation>::arbitrary_take_rest(Unstructured::new(data)) else {
         return;

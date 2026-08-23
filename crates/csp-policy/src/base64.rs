@@ -14,7 +14,7 @@ use alloc::string::String;
 /// Standard alphabet. Index is the 6-bit group value.
 const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-/// Encode `input` as standard base64 with `=` padding.
+/// Encodes `input` as standard base64 with `=` padding.
 ///
 /// The output is ASCII, so it is always a valid HTTP field value and a valid CSP `base64-value`.
 pub(crate) fn encode(input: &[u8]) -> String {
@@ -50,7 +50,7 @@ pub(crate) fn encode(input: &[u8]) -> String {
     out
 }
 
-/// Append the alphabet character for the low six bits of `bits`.
+/// Appends the alphabet character for the low six bits of `bits`.
 #[inline]
 fn push_sextet(out: &mut String, bits: u32) {
     // Masking to six bits makes the index unconditionally in range, so this cannot panic and
@@ -58,8 +58,10 @@ fn push_sextet(out: &mut String, bits: u32) {
     out.push(ALPHABET[(bits & 0x3f) as usize] as char);
 }
 
-/// A character of CSP's `base64-value`: both the standard and the URL-safe alphabet, because a
-/// hash pasted out of a browser console arrives in whichever one that browser chose.
+/// Whether `byte` may appear in CSP's `base64-value`.
+///
+/// Both the standard and the URL-safe alphabet, because a hash pasted out of a browser console
+/// arrives in whichever one that browser chose.
 #[inline]
 pub(crate) const fn is_base64_char(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || matches!(byte, b'+' | b'/' | b'-' | b'_')

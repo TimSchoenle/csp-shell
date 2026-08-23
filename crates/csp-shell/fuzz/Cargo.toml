@@ -40,20 +40,41 @@ debug = true
 debug-assertions = true
 overflow-checks = true
 
+# The root workspace's documentation set, restated because `[lints] workspace = true` does not
+# reach across a workspace boundary and this is a workspace of its own. An oracle is the thing
+# deciding whether a finding is real, so it is the last place to accept sloppiness.
+#
+# `missing_docs` is the one line from the root not restated here. The `Arbitrary`-derived specs
+# are `pub` only because each `fuzz_targets/*.rs` binary is a separate crate; a variant named
+# `Sandbox` on an enum documented as "one call on the builder" has nothing left to say, and the
+# lint cannot tell that apart from a variant that does. The lints below are the ones that grade a
+# comment somebody wrote.
 [lints.rust]
 unsafe_code = "forbid"
+missing_debug_implementations = "warn"
 # `cargo fuzz` sets `--cfg fuzzing` through RUSTFLAGS, so cargo cannot see it declared anywhere
 # and `unexpected_cfgs` would fire on every target shim.
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(fuzzing)"] }
 
-# The same set as the crate under test, restated because this is a workspace of its own. An
-# oracle is the thing deciding whether a finding is real, so it is the last place to accept
-# sloppiness.
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+doc_markdown = "warn"
+too_long_first_doc_paragraph = "warn"
+doc_link_with_quotes = "warn"
+doc_broken_link = "warn"
+doc_include_without_cfg = "warn"
 module_name_repetitions = "allow"
 # Nothing here is called for its return value by anyone but the oracles themselves.
 must_use_candidate = "allow"
+
+# Enforced by the `cargo doc` step in the `fuzz` job rather than by the clippy step above:
+# rustdoc lints run under rustdoc and nowhere else.
+[lints.rustdoc]
+broken_intra_doc_links = "deny"
+private_intra_doc_links = "warn"
+unescaped_backticks = "warn"
 
 # `test`/`doc`/`bench = false` on every target: a `fuzz_target!` binary has no `main` a test
 # harness can call, and `cargo test` in here would fail to link it before reaching `tests/`.

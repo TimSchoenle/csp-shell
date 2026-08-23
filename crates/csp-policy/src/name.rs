@@ -250,7 +250,7 @@ impl DirectiveName {
         })
     }
 
-    /// Parse a directive name, case-insensitively.
+    /// Parses a directive name, case-insensitively.
     ///
     /// # Errors
     ///
@@ -392,7 +392,7 @@ impl SourceDirective {
         self.name().as_str()
     }
 
-    /// Parse a source-list directive name, case-insensitively.
+    /// Parses a source-list directive name, case-insensitively.
     ///
     /// # Errors
     ///
