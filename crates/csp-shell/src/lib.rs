@@ -59,14 +59,7 @@
 //! | *(core)* | always | [`Csp`], [`Policy`], [`ScanResult`], [`scan_shell`], the typed vocabulary, SHA-256 hashing | `csp-policy`, `sha2` |
 //! | `std` | **on** | `scan_shell_at`, `ScanError` | — |
 //! | `nonce` | off | `Nonce`, `Csp::per_response_nonce`, `Headers::nonce`, nonce splicing in [`Policy::headers`] | `getrandom` |
-#![cfg_attr(
-    feature = "presets",
-    doc = "| `presets` | off | [`presets`] — the origins third-party services load from, in the directives they belong in | — |"
-)]
-#![cfg_attr(
-    not(feature = "presets"),
-    doc = "| `presets` | off | `presets` — the origins third-party services load from, in the directives they belong in | — |"
-)]
+//! | `presets` | off | `presets` — the origins third-party services load from, in the directives they belong in | — |
 //! | `cloudflare` | off | `presets` and `nonce` together, under the name the Cloudflare concessions were first published as | — |
 //!
 //! `std` is on by default because it adds no dependency and its absence is a compile error for

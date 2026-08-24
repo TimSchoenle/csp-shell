@@ -256,7 +256,7 @@ impl Csp {
         self
     }
 
-    /// The policy as it stands.
+    /// Returns the policy as it stands.
     #[must_use]
     pub const fn policy(&self) -> &TypedPolicy {
         &self.policy

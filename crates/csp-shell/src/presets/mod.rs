@@ -14,14 +14,7 @@
 //! | Kind | Naming | What it does | Obligation on the caller |
 //! |---|---|---|---|
 //! | **Origins** | a noun — [`google::fonts`], [`stripe::elements`] | appends host sources | none |
-#![cfg_attr(
-    feature = "nonce",
-    doc = "| **Nonce** | a `_nonce` suffix — [`cloudflare::script_nonce`], [`google::tag_manager_nonce`] | reserves the per-response nonce slot | `Cache-Control: no-cache`, and for some services stamping [`Headers::nonce`](crate::Headers::nonce) into the shell |"
-)]
-#![cfg_attr(
-    not(feature = "nonce"),
-    doc = "| **Nonce** | a `_nonce` suffix, behind the `nonce` feature | reserves the per-response nonce slot | `Cache-Control: no-cache`, and for some services stamping the minted value into the shell |"
-)]
+//! | **Nonce** | a `_nonce` suffix, behind the `nonce` feature — `cloudflare::script_nonce`, `google::tag_manager_nonce` | reserves the per-response nonce slot | `Cache-Control: no-cache`, and for some services stamping `Headers::nonce` into the shell |
 //!
 //! Conflating them ships a policy that looks nonce-protected and is not. A nonce preset costs a
 //! per-response header render and a cache obligation; an origins preset costs neither, and no

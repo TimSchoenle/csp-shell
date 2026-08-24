@@ -183,10 +183,11 @@ jobs:
       # back.
       - run: cargo doc --workspace --all-features --no-deps
 
-      # Then every other feature set. The crate documentation is itself feature-gated — the
-      # `presets` row of the feature table, the nonce row of the preset table, `headers`'s
-      # `# Panics` section — so a link that resolves only when a feature is on never appears in
-      # the `--all-features` run above. Four features make the full powerset cheap.
+      # Then every other feature set. A doc comment compiled in every configuration can link an
+      # item that only some configurations define, and the run above resolves that link while no
+      # other run can. Parts of the documentation are gated too — `headers`'s `# Panics` section,
+      # the `no_run` fence on the crate-root example — so they render in one subset of the sets
+      # below. Four features make the full powerset cheap.
       - run: cargo hack --workspace --feature-powerset doc --no-deps
 
   deny:

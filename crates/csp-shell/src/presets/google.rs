@@ -71,11 +71,7 @@ pub(crate) const RECAPTCHA: Origins = &[
 /// of allowance: one that looks specific and is not.
 ///
 /// A Custom HTML tag injects **inline** script, which no host allowance admits.
-#[cfg_attr(feature = "nonce", doc = "That needs [`tag_manager_nonce`].")]
-#[cfg_attr(
-    not(feature = "nonce"),
-    doc = "That needs `tag_manager_nonce`, behind the `nonce` feature."
-)]
+/// That needs `tag_manager_nonce`, behind the `nonce` feature.
 #[must_use]
 pub fn tag_manager(csp: Csp) -> Csp {
     admit(csp, TAG_MANAGER)

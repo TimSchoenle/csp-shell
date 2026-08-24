@@ -1,13 +1,9 @@
 //! Cloudflare.
 //!
-#![cfg_attr(
-    feature = "nonce",
-    doc = "[`script_nonce`] is the one preset in this module tree whose contract is carried entirely by the response header: Cloudflare parses the `Content-Security-Policy` it serves and copies the nonce onto what it injects, so nothing has to be stamped into the shell."
-)]
-#![cfg_attr(
-    not(feature = "nonce"),
-    doc = "`script_nonce`, behind the `nonce` feature, is the one preset in this module tree whose contract is carried entirely by the response header: Cloudflare parses the `Content-Security-Policy` it serves and copies the nonce onto what it injects, so nothing has to be stamped into the shell."
-)]
+//! `script_nonce`, behind the `nonce` feature, is the one preset in this module tree whose
+//! contract is carried entirely by the response header: Cloudflare parses the
+//! `Content-Security-Policy` it serves and copies the nonce onto what it injects, so nothing has
+//! to be stamped into the shell.
 //! Every other nonce preset here needs the value in the document as well.
 
 use csp_policy::SourceDirective::{ConnectSrc, FrameSrc, ScriptSrc};
@@ -94,14 +90,9 @@ pub fn turnstile(csp: Csp) -> Csp {
 /// Admits Cloudflare Web Analytics: the beacon script, and the endpoint it reports to.
 ///
 /// Only for the manual snippet.
-#[cfg_attr(
-    feature = "nonce",
-    doc = "The automatic injection Cloudflare performs at the edge is an inline `<script>` this crate never saw, so it needs [`script_nonce`] rather than these two origins — which is the whole difference between the two kinds of preset in one product."
-)]
-#[cfg_attr(
-    not(feature = "nonce"),
-    doc = "The automatic injection Cloudflare performs at the edge is an inline `<script>` this crate never saw, so it needs `script_nonce`, behind the `nonce` feature, rather than these two origins — which is the whole difference between the two kinds of preset in one product."
-)]
+/// The automatic injection Cloudflare performs at the edge is an inline `<script>` this crate
+/// never saw, so it needs `script_nonce`, behind the `nonce` feature, rather than these two
+/// origins — which is the whole difference between the two kinds of preset in one product.
 #[must_use]
 pub fn web_analytics(csp: Csp) -> Csp {
     admit(csp, WEB_ANALYTICS)
