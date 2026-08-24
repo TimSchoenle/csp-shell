@@ -86,7 +86,7 @@ pub struct ScanResult {
     pub warnings: Vec<ScanWarning>,
 }
 
-/// Scan a shell's source for inline scripts.
+/// Scans a shell's source for inline scripts.
 ///
 /// Returns a `'sha256-…'` source expression for every `<script>` element that has no `src`
 /// attribute, in document order.
@@ -124,7 +124,7 @@ pub fn scan_shell(html: &str) -> ScanResult {
     result
 }
 
-/// Read and scan a shell.
+/// Reads a shell from disk and scans it.
 ///
 /// # Errors
 ///
@@ -153,7 +153,7 @@ pub fn scan_shell_at(path: &std::path::Path) -> Result<ScanResult, crate::ScanEr
     Ok(scan_shell(&html))
 }
 
-/// Replace `\r\n` and lone `\r` with `\n`, borrowing when there is nothing to replace.
+/// Replaces `\r\n` and lone `\r` with `\n`, borrowing when there is nothing to replace.
 ///
 /// This is the single most load-bearing line in the crate. A hash over the file's wire bytes is a
 /// hash **no browser ever computes**, so a checkout with CRLF line endings has its inline scripts
@@ -180,7 +180,7 @@ fn normalize_newlines(src: &str) -> Cow<'_, str> {
     Cow::Owned(out)
 }
 
-/// Walk the preprocessed document, hashing the text content of every inline `<script>`.
+/// Walks the preprocessed document, hashing the text content of every inline `<script>`.
 fn scan_normalised(html: &str, result: &mut ScanResult) {
     let mut cursor = 0;
     while let Some(tag_start) = find_ascii_ci(html, b"<script", cursor) {
@@ -242,7 +242,7 @@ fn scan_normalised(html: &str, result: &mut ScanResult) {
     }
 }
 
-/// Find the next `</script` that a tokenizer would treat as an end tag, from `from`.
+/// Finds the next `</script` that a tokenizer would treat as an end tag, from `from`.
 ///
 /// The name must be followed by a boundary, so `</scriptfoo>` is character data inside the script
 /// rather than the end of it — the same rule as the opening tag, in the direction that matters

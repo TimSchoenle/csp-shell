@@ -21,7 +21,7 @@ pub(crate) const LOADER: Origins = &[(
     ],
 )];
 
-/// Admit the DSN's ingest origin in `connect-src`.
+/// Admits the DSN's ingest origin in `connect-src`.
 ///
 /// Pass the origin, not the DSN: `https://o123456.ingest.us.sentry.io`, not the
 /// `https://<key>@o123456.ingest.us.sentry.io/1` string from the dashboard. The key is a
@@ -57,7 +57,7 @@ pub fn ingest(csp: Csp, origin: &str) -> Result<Csp, ParseError> {
     admit_origin(csp, origin, &[ConnectSrc])
 }
 
-/// Admit the CDN loader script.
+/// Admits the CDN loader script.
 ///
 /// Only for the loader snippet or a CDN-hosted bundle. An SDK installed from npm and bundled into
 /// the application is served from the caller's own origin and needs nothing here.
@@ -66,7 +66,7 @@ pub fn loader(csp: Csp) -> Csp {
     admit(csp, LOADER)
 }
 
-/// Admit `blob:` in `worker-src`, which Session Replay needs.
+/// Admits `blob:` in `worker-src`, which Session Replay needs.
 ///
 /// Replay compresses events in a Web Worker it constructs from a `Blob` rather than from a URL,
 /// so no host allowance covers it — the source is the `blob:` scheme itself.

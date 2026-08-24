@@ -28,7 +28,7 @@ pub(crate) const ELEMENTS: Origins = &[
 /// What embedded Checkout needs *in addition to* [`ELEMENTS`].
 pub(crate) const CHECKOUT: Origins = &[(FrameSrc, &["https://checkout.stripe.com"])];
 
-/// Admit Stripe.js and Elements.
+/// Admits Stripe.js and Elements.
 ///
 /// Address autocomplete is not covered: it loads `maps.googleapis.com`, a Google origin that has
 /// no business being admitted by a call named `stripe::elements`. Integrations using it add that
@@ -38,7 +38,7 @@ pub fn elements(csp: Csp) -> Csp {
     admit(csp, ELEMENTS)
 }
 
-/// Admit embedded Checkout: everything [`elements`] admits, plus the Checkout frame host.
+/// Admits embedded Checkout: everything [`elements`] admits, plus the Checkout frame host.
 ///
 /// Only for the *embedded* form. Hosted Checkout navigates the browser to a Stripe-served
 /// document carrying its own policy, so it needs nothing here — including nothing in

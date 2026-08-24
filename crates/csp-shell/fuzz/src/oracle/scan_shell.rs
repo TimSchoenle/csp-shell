@@ -10,7 +10,7 @@ use csp_shell::{scan_shell, Csp, HashAlgorithm, Source, SourceDirective};
 
 use crate::support;
 
-/// Decode `data` as text and scan it.
+/// Decodes `data` as text and scans it.
 ///
 /// # Panics
 ///
@@ -23,7 +23,7 @@ pub fn check(data: &[u8]) {
     run(html);
 }
 
-/// Scan `html` and assert every property the scan must have.
+/// Scans `html` and asserts every property the scan must have.
 ///
 /// # Panics
 ///

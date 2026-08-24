@@ -176,17 +176,19 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
         with:
           toolchain: nightly
-      # `--all-features` only, which is what docs.rs itself renders.
-      #
-      # A per-feature pass would be the stronger gate — the documentation is itself
-      # feature-gated, so a broken intra-doc link can hide in a set `--all-features` never
-      # renders — but it does not pass today: `csp-shell` links to `presets`,
-      # `Csp::per_response_nonce` and `Nonce::mint` from doc comments that are compiled in every
-      # configuration, so rustdoc cannot resolve them under `--no-default-features`. Making those
-      # links feature-aware is a change to the crate's doc comments, not to this file, and
-      # turning the check on before that is done buys a red pipeline rather than a finding. Code
-      # behind a `#[cfg(feature)]` is still covered: that is what the `clippy` powerset job is.
+      - uses: taiki-e/install-action@a2a5f6e99e1a31540baa0468acfa302cff0f359f # v2.86.4
+        with:
+          tool: cargo-hack
+      # What docs.rs itself renders, so a broken page is caught before a release nobody can take
+      # back.
       - run: cargo doc --workspace --all-features --no-deps
+
+      # Then every other feature set. A doc comment compiled in every configuration can link an
+      # item that only some configurations define, and the run above resolves that link while no
+      # other run can. Parts of the documentation are gated too — `headers`'s `# Panics` section,
+      # the `no_run` fence on the crate-root example — so they render in one subset of the sets
+      # below. Four features make the full powerset cheap.
+      - run: cargo hack --workspace --feature-powerset doc --no-deps
 
   deny:
     name: deny
@@ -265,6 +267,15 @@ jobs:
       - name: Lint the oracles
         working-directory: crates/${{ matrix.crate }}/fuzz
         run: cargo clippy --all-targets -- -D warnings
+
+      # The step above cannot see the harness's `[lints.rustdoc]` table, because rustdoc lints run
+      # under rustdoc and nowhere else. Without this the oracles' intra-doc links are the one part
+      # of the repository nothing checks.
+      - name: Document the oracles
+        working-directory: crates/${{ matrix.crate }}/fuzz
+        env:
+          RUSTDOCFLAGS: "-D warnings"
+        run: cargo doc --no-deps
 
       - name: Replay the seeds
         working-directory: crates/${{ matrix.crate }}/fuzz

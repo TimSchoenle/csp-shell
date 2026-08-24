@@ -21,7 +21,7 @@ use crate::util::push_unique;
 pub struct TrustedTypePolicyName(String);
 
 impl TrustedTypePolicyName {
-    /// Parse a policy name.
+    /// Parses a policy name.
     ///
     /// # Errors
     ///
@@ -198,7 +198,7 @@ impl TrustedTypeSink {
         }
     }
 
-    /// Parse a sink category, with or without quotes, case-insensitively.
+    /// Parses a sink category, with or without quotes, case-insensitively.
     ///
     /// # Errors
     ///

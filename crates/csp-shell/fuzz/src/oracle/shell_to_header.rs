@@ -22,7 +22,7 @@ pub struct Deployment {
     pub extra_connect_src: Vec<String>,
 }
 
-/// Decode `data` into a deployment and run it.
+/// Decodes `data` into a deployment and runs it.
 ///
 /// The decode is `arbitrary_take_rest` over the raw bytes, which is exactly what
 /// `libfuzzer_sys::fuzz_target!` does for a typed argument — so a corpus entry a campaign found
@@ -38,7 +38,7 @@ pub fn check(data: &[u8]) {
     run(&deployment);
 }
 
-/// Scan the shell, assemble the preset around it, and assert the header that reaches the wire.
+/// Scans the shell, assembles the preset around it, and asserts the header that reaches the wire.
 ///
 /// # Panics
 ///

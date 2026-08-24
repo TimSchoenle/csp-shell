@@ -74,7 +74,7 @@ fn build_sources(specs: Vec<SourceSpec>) -> Vec<Source> {
     specs.into_iter().filter_map(SourceSpec::build).collect()
 }
 
-/// Decode `data` into a builder session and run it.
+/// Decodes `data` into a builder session and runs it.
 ///
 /// The decode is `arbitrary_take_rest` over the raw bytes, which is exactly what
 /// `libfuzzer_sys::fuzz_target!` does for a typed argument — so a corpus entry a campaign found
@@ -90,7 +90,7 @@ pub fn check(data: &[u8]) {
     run(session);
 }
 
-/// Apply every operation in `session` and assert the policy it renders to.
+/// Applies every operation in `session` and asserts the policy it renders to.
 ///
 /// # Panics
 ///

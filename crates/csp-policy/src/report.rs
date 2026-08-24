@@ -10,13 +10,13 @@ use crate::util::is_policy_byte;
 /// A reporting group name, as declared in a `Reporting-Endpoints` header.
 ///
 /// `report-to` names a group rather than a URL, which is what lets one endpoint serve several
-/// policies. A group that was never declared is not an error anywhere: reports are simply not
-/// sent, and the only symptom is a reporting pipeline that stays empty.
+/// policies. A group that was never declared is not an error anywhere: reports are not sent,
+/// and the only symptom is a reporting pipeline that stays empty.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ReportGroup(String);
 
 impl ReportGroup {
-    /// Parse a group name.
+    /// Parses a group name.
     ///
     /// # Errors
     ///
@@ -56,7 +56,7 @@ impl FromStr for ReportGroup {
 pub struct ReportUri(String);
 
 impl ReportUri {
-    /// Parse an endpoint.
+    /// Parses an endpoint.
     ///
     /// # Errors
     ///

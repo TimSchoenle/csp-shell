@@ -25,7 +25,7 @@ pub struct Nonce {
 }
 
 impl Nonce {
-    /// 128 CSPRNG bits.
+    /// Mints a fresh nonce, drawing 128 bits from the operating system's CSPRNG.
     ///
     /// # Panics
     ///
@@ -34,7 +34,6 @@ impl Nonce {
     /// that admits arbitrary inline script while appearing to restrict it. Failing loudly at the
     /// point of failure is the only outcome that is not silently insecure.
     #[must_use]
-    #[allow(clippy::missing_panics_doc)] // documented above, in the terms that matter
     pub fn mint() -> Self {
         let mut bytes = [0u8; ENTROPY_BYTES];
         getrandom::fill(&mut bytes).expect("the operating system CSPRNG must be available");

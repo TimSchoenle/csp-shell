@@ -16,13 +16,13 @@ pub(crate) const CLOUD: Origins = &[
 /// The directives a Plausible instance's origin has to appear in, whichever host it is.
 const DIRECTIVES: &[csp_policy::SourceDirective] = &[ScriptSrc, ConnectSrc];
 
-/// Admit Plausible Cloud.
+/// Admits Plausible Cloud.
 #[must_use]
 pub fn cloud(csp: Csp) -> Csp {
     admit(csp, CLOUD)
 }
 
-/// Admit a self-hosted instance, or a Plausible Cloud custom domain.
+/// Admits a self-hosted instance, or a Plausible Cloud custom domain.
 ///
 /// The proxying setup Plausible documents — serving the script from the caller's own origin to
 /// survive blockers — needs no preset at all: `default-src 'self'` covers it.

@@ -1,4 +1,4 @@
-//! Build a Content-Security-Policy from the app shell you actually serve.
+//! Builds a Content-Security-Policy from the app shell you serve.
 //!
 //! There is exactly one mechanism in this crate:
 //!
@@ -59,7 +59,7 @@
 //! | *(core)* | always | [`Csp`], [`Policy`], [`ScanResult`], [`scan_shell`], the typed vocabulary, SHA-256 hashing | `csp-policy`, `sha2` |
 //! | `std` | **on** | `scan_shell_at`, `ScanError` | — |
 //! | `nonce` | off | `Nonce`, `Csp::per_response_nonce`, `Headers::nonce`, nonce splicing in [`Policy::headers`] | `getrandom` |
-//! | `presets` | off | [`presets`] — the origins third-party services load from, in the directives they belong in | — |
+//! | `presets` | off | `presets` — the origins third-party services load from, in the directives they belong in | — |
 //! | `cloudflare` | off | `presets` and `nonce` together, under the name the Cloudflare concessions were first published as | — |
 //!
 //! `std` is on by default because it adds no dependency and its absence is a compile error for
@@ -79,7 +79,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![forbid(unsafe_code)]
-#![deny(missing_docs, missing_debug_implementations)]
 
 extern crate alloc;
 

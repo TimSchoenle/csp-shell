@@ -1,8 +1,9 @@
-//! Helpers shared by more than one module.
+//! Helpers shared by more than one module: order-preserving deduplication, and the byte set a
+//! rendered policy may contain.
 
 use alloc::vec::Vec;
 
-/// Append `value` unless an equal value is already present.
+/// Appends `value` unless an equal value is already present.
 ///
 /// The vectors this is used on hold a handful of entries — the source expressions of one
 /// directive, the tokens of one `sandbox` — so the linear scan costs less than the hash set that

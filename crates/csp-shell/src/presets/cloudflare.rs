@@ -1,9 +1,10 @@
 //! Cloudflare.
 //!
-//! [`script_nonce`] is the one preset in this module tree whose contract is carried entirely by
-//! the response header: Cloudflare parses the `Content-Security-Policy` it serves and copies the
-//! nonce onto what it injects, so nothing has to be stamped into the shell. Every other
-//! nonce preset here needs the value in the document as well.
+//! `script_nonce`, behind the `nonce` feature, is the one preset in this module tree whose
+//! contract is carried entirely by the response header: Cloudflare parses the
+//! `Content-Security-Policy` it serves and copies the nonce onto what it injects, so nothing has
+//! to be stamped into the shell.
+//! Every other nonce preset here needs the value in the document as well.
 
 use csp_policy::SourceDirective::{ConnectSrc, FrameSrc, ScriptSrc};
 
@@ -23,7 +24,7 @@ pub(crate) const WEB_ANALYTICS: Origins = &[
     (ConnectSrc, &["https://cloudflareinsights.com"]),
 ];
 
-/// [`Csp::per_response_nonce(true)`](Csp::per_response_nonce), named for why you would want it.
+/// Reserves the per-response nonce slot, for the inline script Cloudflare injects at the edge.
 ///
 /// Cloudflare's bot products — Bot Fight Mode, JavaScript Detections, the challenge platform —
 /// inject an inline `<script>` into the served HTML **at the edge**, after this crate has hashed
@@ -58,7 +59,7 @@ pub fn script_nonce(csp: Csp) -> Csp {
     csp.per_response_nonce(true)
 }
 
-/// Admit `https://challenges.cloudflare.com` in `script-src` **and** `frame-src`.
+/// Admits `https://challenges.cloudflare.com` in `script-src` **and** `frame-src`.
 ///
 /// One origin, two directives, because Turnstile loads `api.js` and then frames the widget from
 /// the same host — admitting the script without the frame renders an empty box, which is a
@@ -86,10 +87,11 @@ pub fn turnstile(csp: Csp) -> Csp {
     admit(csp, TURNSTILE)
 }
 
-/// Admit Cloudflare Web Analytics: the beacon script, and the endpoint it reports to.
+/// Admits Cloudflare Web Analytics: the beacon script, and the endpoint it reports to.
 ///
-/// Only for the manual snippet. The automatic injection Cloudflare performs at the edge is an
-/// inline `<script>` this crate never saw, so it needs [`script_nonce`] rather than these two
+/// Only for the manual snippet.
+/// The automatic injection Cloudflare performs at the edge is an inline `<script>` this crate
+/// never saw, so it needs `script_nonce`, behind the `nonce` feature, rather than these two
 /// origins — which is the whole difference between the two kinds of preset in one product.
 #[must_use]
 pub fn web_analytics(csp: Csp) -> Csp {

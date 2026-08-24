@@ -20,10 +20,38 @@ sha2 = { version = "0.11.0", default-features = false }
 getrandom = { version = "0.4.3", default-features = false }
 base64 = "0.23.1"
 
+# Declared here and inherited through `[lints] workspace = true`, so neither crate can be held to
+# a looser documentation standard than the other. `warn` rather than `deny` everywhere except the
+# one link lint at the bottom: CI compiles with `-D warnings` and documents with
+# `RUSTDOCFLAGS: -D warnings`, which makes every line below a merge gate while leaving a local
+# `cargo check` mid-refactor usable.
 [workspace.lints.rust]
+# Fires on the crate root, every module, every public item and every public struct field. That
+# makes `rustdoc::missing_crate_level_docs` redundant, so it is not listed.
+missing_docs = "warn"
+missing_debug_implementations = "warn"
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(docsrs)"] }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
+# Already inside `pedantic`. Named again so the next reader knows they are deliberate rather than
+# swept in with the group, and so dropping `pedantic` would not quietly drop them.
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+# An identifier written outside backticks renders as prose and cannot then be searched for.
+doc_markdown = "warn"
+# The missing blank line after the summary, which makes the whole comment the index entry.
+too_long_first_doc_paragraph = "warn"
+doc_link_with_quotes = "warn"
+doc_broken_link = "warn"
+doc_include_without_cfg = "warn"
 # Both crates are one namespace deep; `csp::CspError` is the documented public path.
 module_name_repetitions = "allow"
+
+# A broken intra-doc link renders as the literal `[`Foo`]` on the page, so it is invisible to the
+# reader and visible only to the author who no longer needs it. Denied rather than warned for that
+# reason; the rest are warnings the documentation job turns into errors.
+[workspace.lints.rustdoc]
+broken_intra_doc_links = "deny"
+private_intra_doc_links = "warn"
+unescaped_backticks = "warn"
