@@ -1,12 +1,57 @@
-# Text is normalised to LF in the repository, so a checkout on Windows and one on Linux hash the
-# same bytes.
+# ---------------------------------------------------------------------------
+# Default behaviour
+# ---------------------------------------------------------------------------
+# Normalise everything to LF in the repository; Git still checks files out
+# using the platform's native line endings unless overridden below.
 * text=auto eol=lf
 
-# Fuzzing inputs are exempt, and this is not a stylistic preference. `scan_shell` exists to prove
-# that a CRLF checkout produces the same script hashes as an LF one, and `seeds/scan_shell` holds
-# a document with CRLF line endings and one with a byte order mark for exactly that purpose.
-# Normalising them would rewrite the input the seed *is* and quietly turn two regression tests
-# into copies of a third.
-crates/*/fuzz/seeds/** -text
-crates/*/fuzz/corpus/** -text
-crates/*/fuzz/dictionaries/** -text
+# ---------------------------------------------------------------------------
+# Rust
+# ---------------------------------------------------------------------------
+*.rs text diff=rust
+*.toml text
+Cargo.lock text -diff linguist-generated
+rust-toolchain.toml text
+
+# ---------------------------------------------------------------------------
+# Docs & misc text
+# ---------------------------------------------------------------------------
+*.md text diff=markdown
+LICENSE text
+
+# ---------------------------------------------------------------------------
+# Config / CI / tooling
+# ---------------------------------------------------------------------------
+*.yml text
+*.yaml text
+*.json text
+*.sh text eol=lf diff=bash
+.github/templates/*.hbs text linguist-language=Handlebars
+
+# ---------------------------------------------------------------------------
+# Fuzzing corpora, crash artifacts, seeds and dictionaries
+# ---------------------------------------------------------------------------
+# These are raw byte streams that fuzz targets replay verbatim; some seeds
+# exist specifically to carry CRLF endings or a BOM (see
+# `crates/*/fuzz/seeds/scan_shell`), so none of this may be touched by
+# normalisation, diffed as text, or counted towards the repo's language
+# statistics.
+crates/*/fuzz/corpus/**      -text -diff linguist-generated linguist-detectable=false
+crates/*/fuzz/artifacts/**   -text -diff linguist-generated linguist-detectable=false
+crates/*/fuzz/seeds/**       -text -diff linguist-generated linguist-detectable=false
+crates/*/fuzz/dictionaries/** -text -diff linguist-generated linguist-detectable=false
+
+# ---------------------------------------------------------------------------
+# Binary formats
+# ---------------------------------------------------------------------------
+*.pdb -text -diff binary
+
+# ---------------------------------------------------------------------------
+# `git archive` export (does not affect `cargo package`, which follows
+# Cargo.toml's own include/exclude list)
+# ---------------------------------------------------------------------------
+/.github/      export-ignore
+/.claude/      export-ignore
+/.serena/      export-ignore
+/.junie/       export-ignore
+/crates/*/fuzz/ export-ignore
