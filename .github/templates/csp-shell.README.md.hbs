@@ -51,13 +51,12 @@ let headers = policy.headers();
 every `<script>` element that has no `src`. `Csp::spa_wasm` is a starting policy for a WebAssembly
 single-page application; `Csp::new` starts from nothing at all.
 
-The policy vocabulary underneath — every directive, source expression and token as a type — is
+The policy vocabulary underneath, with every directive, source expression and token as a type, is
 [`csp-policy`](../csp-policy), a dependency-free `no_std` crate in this repository. `csp-shell`
 re-exports all of it, so building a policy needs one dependency rather than two.
 
-Everything around that — static serving, SPA fallback, a reverse proxy, baseline security
-headers, a `tower::Layer` to attach the result — already exists elsewhere and belongs to your
-application. This crate has no web-framework dependency and will not acquire one.
+Static serving, SPA fallback, a reverse proxy, baseline security headers and a `tower::Layer` to
+attach the result already exist elsewhere and belong to your application. This crate has no web-framework dependency and will not acquire one.
 
 ## The failure mode is silent
 
@@ -86,8 +85,8 @@ let csp_shell::Headers { content_security_policy, cache_control, .. } = policy.h
 pinned across every reader for the lifetime of the cache entry, which admits exactly the inline
 script the nonce exists to constrain.
 
-`Policy::is_per_response()` tells you whether the header varies. When it is false — no nonce
-reserved — render once at startup and reuse the result.
+`Policy::is_per_response()` tells you whether the header varies. When it is false, because no nonce
+is reserved, render once at startup and reuse the result.
 
 There is deliberately no `tower::Layer` here: a layer you forget to mount is invisible, whereas a
 struct field you ignore is visible at the call site, and this way the crate works on `axum`,
@@ -175,7 +174,7 @@ let csp = Csp::spa_wasm()
 ```
 
 Prefer removing a source to restating the list. A restated list stops tracking the preset, so a
-source a later version of this crate adds is dropped without a diagnostic — the same silent failure
+source a later version of this crate adds is dropped without a diagnostic. That is the same silent failure
 a hand-maintained header has.
 
 Removing every source from a directive is not the same as removing the directive. `img-src 'none'`
@@ -188,8 +187,8 @@ one further than any of them.
 
 ### Everything else a policy can say
 
-`Csp` covers the directives this crate has an opinion about. Everything else — `sandbox`,
-`trusted-types`, `webrtc`, the reporting directives — goes through `Csp::set` with the same
+`Csp` covers the directives this crate has an opinion about. Everything else, such as `sandbox`,
+`trusted-types`, `webrtc` and the reporting directives, goes through `Csp::set` with the same
 vocabulary:
 
 ```rust
@@ -223,7 +222,7 @@ heuristic. `'unsafe-inline'` in `style-src` is untouched; `Csp::spa_wasm()` sets
 ### Minting a nonce for an edge-injected script
 
 A nonce is not a Cloudflare feature. Anything that injects inline script downstream of your
-origin — an edge worker, a CDN's RUM beacon, an SSR template — needs one, because your hashes
+origin, such as an edge worker, a CDN's RUM beacon or an SSR template, needs one, because your hashes
 were computed before that script existed.
 
 ```rust
@@ -238,7 +237,7 @@ Cloudflare is the motivating case. Its bot products (Bot Fight Mode, JavaScript 
 challenge platform) inject an inline `<script>` at the edge, `script-src` refuses it, and the
 detection silently never runs: bot management appears enabled and does nothing. Cloudflare's
 documented answer is to parse your `Content-Security-Policy` response header and copy the nonce
-onto what it injects — which is why nothing is stamped into the shell. The header is the entire
+onto what it injects. That is why nothing is stamped into the shell. The header is the entire
 contract, and your own inline scripts keep running by hash either way, because under CSP3 a
 script executes if it matches *any* source expression.
 
@@ -246,12 +245,12 @@ Two conditions, and only the first is enforceable from inside your process:
 
 1. The shell must be served `Cache-Control: no-cache`. `Policy::headers()` hands it to you.
 2. No Cloudflare Cache Rule may cache the shell. A "Cache Everything" rule overrides the origin
-   `Cache-Control` — satisfying condition 1 at the origin and violating it at the edge. That one
+   `Cache-Control`, satisfying condition 1 at the origin and violating it at the edge. That one
    belongs in your deployment checklist.
 
 ### Stamping the nonce into the shell
 
-Cloudflare reads the nonce out of the response header. Most services do not — Google Tag Manager
+Cloudflare reads the nonce out of the response header. Most services do not. Google Tag Manager
 reads it off *its own loader element* and copies it onto the tags it injects, and an SSR template
 has to put it on the scripts it generates. For those, `Headers::nonce` hands back the value that
 was spliced into the header:
@@ -269,8 +268,8 @@ Skip it when nothing needs the value in the document.
 
 ### Third-party services
 
-`presets` carries the origins a service loads from, in the directives they belong in — the second
-half being the part that is easy to get wrong and silent when you do. Presets compose in any
+`presets` carries the origins a service loads from, in the directives they belong in. The directive is the part that is easy to get wrong, and a
+wrong one fails silently. Presets compose in any
 order, are idempotent, and only ever widen: a preset that creates a directive seeds it from
 whatever the browser was falling back to first, so adding Turnstile does not quietly revoke
 same-origin frames.
@@ -327,7 +326,7 @@ fn differs_from(&self, previous: &Self) -> bool {
 }
 ```
 
-The crate deliberately owns none of this — it exposes the digest and stays reload-agnostic. Three
+The crate deliberately owns none of this. It exposes the digest and stays reload-agnostic. Three
 things to know if you implement it on Kubernetes:
 
 - **`ConfigMap` and `Secret` volume updates are atomic symlink swaps of a `..data` directory.** An
@@ -347,7 +346,7 @@ startup-derived state.
 It is not an HTML parser and must not become one. It reads one generated file, and the cases it
 handles are the ones that arise there:
 
-- `<scriptfoo>` is not a `<script>` — only a name or attribute boundary may follow the tag name,
+- `<scriptfoo>` is not a `<script>`: only a name or attribute boundary may follow the tag name,
   in the opening and the closing tag alike.
 - An element carrying `src` is skipped; `'self'` already covers it. The check requires an
   attribute boundary before `src` and an `=` after it, and ignores matches inside quoted
@@ -369,9 +368,9 @@ it with U+FFFD, so the hash will not match, and something upstream is already br
 | `presets` | `presets::*` — the origins third-party services load from, in the directives they belong in | — |
 | `cloudflare` | `presets` and `nonce` together, under the name the Cloudflare concessions were first published as | — |
 
-The default build compiles `csp-policy` — which has no dependencies of its own — and `sha2`, and
+The default build compiles `csp-policy`, which has no dependencies of its own, and `sha2`, and
 nothing else. `default-features = false` gives a
-`no_std + alloc` core — usable from a build script, a bundler, or a bare-metal target — where you
+`no_std + alloc` core, usable from a build script, a bundler or a bare-metal target, where you
 pass the shell's text in yourself:
 
 ```toml
@@ -401,7 +400,7 @@ which of them it bumps: `crates/csp-shell` moves `{{shell_tag}}`, `crates/csp-po
 own tag, and release-please rewrites the version requirement between them so the pair can never
 disagree about which release is being built.
 
-`README.md` is generated. Edit `.github/templates/csp-shell.README.md.hbs` instead — CI renders it
+`README.md` is generated. Edit `.github/templates/csp-shell.README.md.hbs` instead. CI renders it
 on every pull request and commits the result back to the branch, and a push to `main` whose
 `README.md` does not match its template fails.
 
@@ -422,7 +421,7 @@ in CI; running them on one platform locally is enough for review.
 
 Fuzzing lives in its own workspace under each crate's `fuzz/`, and comes in two halves.
 
-The oracles — the code that decides whether an input is a finding — are an ordinary library, not
+The oracles, the code that decides whether an input is a finding, are an ordinary library, not
 bodies buried in the target binaries. So the committed seeds and a deterministic sweep through
 each oracle replay on a plain `cargo test`, with no sanitizer and no nightly. That is the half
 CI gates on, and the half a reproducer stays in forever:
@@ -450,7 +449,7 @@ cargo +nightly fuzz run parse_terms
 cargo +nightly fuzz run build_policy
 ```
 
-`corpus/` is gitignored — a campaign's output is machine-specific and grows without bound. When a
+`corpus/` is gitignored, because a campaign's output is machine-specific and grows without bound. When a
 campaign finds something worth keeping, the input belongs in `seeds/`, where the replay suite
 picks it up on every push.
 

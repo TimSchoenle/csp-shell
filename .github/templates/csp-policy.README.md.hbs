@@ -89,15 +89,14 @@ Three fuzz targets and a stable-toolchain property test over every parser assert
 
 Every directive in CSP3 and the current drafts, with the value grammar each one actually takes:
 
-- **Source lists** — `child-src`, `connect-src`, `default-src`, `fenced-frame-src`, `font-src`,
-  `frame-src`, `img-src`, `manifest-src`, `media-src`, `object-src`, `prefetch-src`, `script-src`,
-  `script-src-attr`, `script-src-elem`, `style-src`, `style-src-attr`, `style-src-elem`,
-  `worker-src`, `base-uri`, `form-action`
-- **Ancestor sources** — `frame-ancestors`, with its own narrower grammar
-- **Sandbox tokens** — all fifteen
-- **Trusted Types** — `trusted-types` and `require-trusted-types-for`
-- **Reporting** — `report-to` and `report-uri`
-- **Flags** — `upgrade-insecure-requests`, `block-all-mixed-content`, `webrtc`
+| Value grammar | Directives |
+| --- | --- |
+| Source list | `child-src`, `connect-src`, `default-src`, `fenced-frame-src`, `font-src`, `frame-src`, `img-src`, `manifest-src`, `media-src`, `object-src`, `prefetch-src`, `script-src`, `script-src-attr`, `script-src-elem`, `style-src`, `style-src-attr`, `style-src-elem`, `worker-src`, `base-uri`, `form-action` |
+| Ancestor source, a narrower grammar of its own | `frame-ancestors` |
+| Sandbox token, all fifteen | `sandbox` |
+| Trusted Types | `trusted-types`, `require-trusted-types-for` |
+| Reporting | `report-to`, `report-uri` |
+| Flag | `upgrade-insecure-requests`, `block-all-mixed-content`, `webrtc` |
 
 Source expressions cover every keyword (`'self'`, `'unsafe-inline'`, `'strict-dynamic'`,
 `'wasm-unsafe-eval'`, `'unsafe-hashes'`, `'report-sample'`, `'inline-speculation-rules'`), schemes,
@@ -106,17 +105,17 @@ host patterns with wildcards, ports and paths, nonces, and SHA-256/384/512 hashe
 ## Scope
 
 Building and rendering, not parsing a whole policy back out of a response and not enforcing one.
-Each term parses from its own textual form — `Source::parse`, `HostSource::parse` and the rest —
-which is what a consumer reading origins out of configuration needs. Reassembling a whole header
+Each term parses from its own textual form through `Source::parse`, `HostSource::parse` and the
+rest, which is what a consumer reading origins out of configuration needs. Reassembling a whole header
 into a `Policy` is deliberately absent: the only honest result of parsing a policy a browser would
 partly ignore is a value that says which parts those were, and that is a different crate.
 
-For deriving a policy from the document you are about to serve — inline-script hashes, per-response
-nonces — see [`csp-shell`](../csp-shell), which is built on this crate and re-exports it.
+For deriving a policy from the document you are about to serve, with inline-script hashes and
+per-response nonces, see [`csp-shell`](../csp-shell), which is built on this crate and re-exports it.
 
 ## Contributing
 
-`README.md` is generated. Edit `.github/templates/csp-policy.README.md.hbs` instead — CI renders
+`README.md` is generated. Edit `.github/templates/csp-policy.README.md.hbs` instead. CI renders
 it on every pull request and commits the result back to the branch, and a push to `main` whose
 `README.md` does not match its template fails.
 
