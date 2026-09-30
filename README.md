@@ -21,8 +21,8 @@ inherit from [workspace.package] and the action therefore cannot see.
 
 Content-Security-Policy built from the app shell you serve: inline-script hashes, per-response nonces and presets.
 
-[![csp-shell](https://img.shields.io/badge/csp--shell-0.2.0-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-shell-v0.2.0)
-[![csp-policy](https://img.shields.io/badge/csp--policy-0.2.0-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-policy-v0.2.0)
+[![csp-shell](https://img.shields.io/badge/csp--shell-0.2.1-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-shell-v0.2.1)
+[![csp-policy](https://img.shields.io/badge/csp--policy-0.2.1-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-policy-v0.2.1)
 [![CI](https://img.shields.io/github/actions/workflow/status/TimSchoenle/csp-shell/ci.yml?branch=main&label=CI)](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml)
 [![Licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.85.0-blue)](Cargo.toml)
@@ -107,7 +107,7 @@ is no version requirement to resolve: the tag names the revision.
 
 ```toml
 [dependencies]
-csp-shell = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-shell-v0.2.0" }
+csp-shell = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-shell-v0.2.1" }
 ```
 
 Pin by tag, not branch. `Cargo.lock` records the resolved revision either way, but a branch
@@ -118,7 +118,7 @@ The typed vocabulary on its own, for anything with no document to derive a polic
 
 ```toml
 [dependencies]
-csp-policy = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-policy-v0.2.0" }
+csp-policy = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-policy-v0.2.1" }
 ```
 
 ## Usage
@@ -199,7 +199,7 @@ Turning the default off leaves a `no_std + alloc` core that takes the shell's te
 caller, usable from a build script, a bundler or a bare-metal target:
 
 ```toml
-csp-shell = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-shell-v0.2.0", default-features = false }
+csp-shell = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-shell-v0.2.1", default-features = false }
 ```
 
 `csp-policy` has no features. It is `no_std + alloc` and dependency-free in every configuration.
