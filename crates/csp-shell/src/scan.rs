@@ -363,6 +363,7 @@ mod tests {
     use super::{has_src_attribute, normalize_newlines, Digest, ScanWarning, Sha256};
     use crate::scan_shell;
     use alloc::borrow::Cow;
+    use alloc::vec::Vec;
 
     /// Hashing the wire bytes computes a hash no browser computes, and the page is blank
     /// under a header that looks entirely correct.
@@ -399,7 +400,7 @@ mod tests {
     /// Only a name or attribute boundary may follow the tag name.
     #[test]
     fn scriptfoo_is_not_a_script() {
-        assert!(scan_shell("<scriptfoo>x</scriptfoo>").hashes.is_empty());
+        assert_eq!(scan_shell("<scriptfoo>x</scriptfoo>").hashes, Vec::new());
         assert_eq!(
             scan_shell("<scriptfoo>x</scriptfoo><script>y</script>")
                 .hashes
@@ -438,7 +439,7 @@ mod tests {
     #[test]
     fn an_unterminated_opening_tag_stops_the_scan() {
         let scan = scan_shell("<script foo=</script>");
-        assert!(scan.hashes.is_empty());
+        assert_eq!(scan.hashes, Vec::new());
         assert!(scan.warnings.contains(&ScanWarning::UnterminatedTag));
 
         let scan = scan_shell("<script>ok</script><script foo=");
@@ -449,7 +450,7 @@ mod tests {
     #[test]
     fn an_unclosed_script_element_stops_the_scan() {
         let scan = scan_shell("<script>alert(1)");
-        assert!(scan.hashes.is_empty());
+        assert_eq!(scan.hashes, Vec::new());
         assert!(scan
             .warnings
             .contains(&ScanWarning::UnterminatedScriptElement));

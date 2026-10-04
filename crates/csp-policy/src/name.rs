@@ -461,7 +461,7 @@ mod tests {
     fn every_name_is_distinct_and_well_formed() {
         for (index, &name) in DirectiveName::ALL.iter().enumerate() {
             let text = name.as_str();
-            assert!(!text.is_empty());
+            assert_ne!(text, "");
             assert!(
                 text.bytes().all(|b| b.is_ascii_lowercase() || b == b'-')
                     && text.starts_with(|c: char| c.is_ascii_lowercase()),
