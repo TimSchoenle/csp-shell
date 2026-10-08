@@ -16,7 +16,7 @@ already updated.
 # csp-policy
 
 [![CI](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml/badge.svg)](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-0.2.0-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-policy-v0.2.0)
+[![Version](https://img.shields.io/badge/version-0.2.1-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-policy-v0.2.1)
 [![MSRV](https://img.shields.io/badge/MSRV-1.85.0-blue)](../../Cargo.toml)
 [![Licence](https://img.shields.io/badge/licence-MIT-blue)](../../LICENSE)
 
@@ -27,7 +27,7 @@ and the header value is what those types render to.
 
 ```toml
 [dependencies]
-csp-policy = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-policy-v0.2.0" }
+csp-policy = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-policy-v0.2.1" }
 ```
 
 This crate versions independently of [`csp-shell`](../csp-shell) and carries its own tag, so
