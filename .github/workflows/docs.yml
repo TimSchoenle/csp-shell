@@ -93,21 +93,21 @@ jobs:
           extra: ${{ steps.config.outputs.json }}
 
       - name: Render the workspace README
-        uses: TimSchoenle/actions/actions/common/render-template@c4068f4412c52bcf92d15f9bb255d37b2eafd0b7 # tag=actions-common-render-template-v1.2.5
+        uses: TimSchoenle/actions/actions/common/render-template@1e89d598e447ab05d36edc9e9d18e8771adf6426 # tag=actions-common-render-template-v1.2.6
         with:
           template: .github/templates/README.md.hbs
           output: README.md
           variables: ${{ steps.variables.outputs.variables }}
 
       - name: Render the csp-shell README
-        uses: TimSchoenle/actions/actions/common/render-template@c4068f4412c52bcf92d15f9bb255d37b2eafd0b7 # tag=actions-common-render-template-v1.2.5
+        uses: TimSchoenle/actions/actions/common/render-template@1e89d598e447ab05d36edc9e9d18e8771adf6426 # tag=actions-common-render-template-v1.2.6
         with:
           template: .github/templates/csp-shell.README.md.hbs
           output: crates/csp-shell/README.md
           variables: ${{ steps.variables.outputs.variables }}
 
       - name: Render the csp-policy README
-        uses: TimSchoenle/actions/actions/common/render-template@c4068f4412c52bcf92d15f9bb255d37b2eafd0b7 # tag=actions-common-render-template-v1.2.5
+        uses: TimSchoenle/actions/actions/common/render-template@1e89d598e447ab05d36edc9e9d18e8771adf6426 # tag=actions-common-render-template-v1.2.6
         with:
           template: .github/templates/csp-policy.README.md.hbs
           output: crates/csp-policy/README.md
@@ -174,7 +174,7 @@ jobs:
 
       # Each writes nothing; each fails with the first differing line when its output is stale.
       - name: Verify README.md is current
-        uses: TimSchoenle/actions/actions/common/render-template@c4068f4412c52bcf92d15f9bb255d37b2eafd0b7 # tag=actions-common-render-template-v1.2.5
+        uses: TimSchoenle/actions/actions/common/render-template@1e89d598e447ab05d36edc9e9d18e8771adf6426 # tag=actions-common-render-template-v1.2.6
         with:
           template: .github/templates/README.md.hbs
           output: README.md
@@ -182,7 +182,7 @@ jobs:
           check: true
 
       - name: Verify crates/csp-shell/README.md is current
-        uses: TimSchoenle/actions/actions/common/render-template@c4068f4412c52bcf92d15f9bb255d37b2eafd0b7 # tag=actions-common-render-template-v1.2.5
+        uses: TimSchoenle/actions/actions/common/render-template@1e89d598e447ab05d36edc9e9d18e8771adf6426 # tag=actions-common-render-template-v1.2.6
         with:
           template: .github/templates/csp-shell.README.md.hbs
           output: crates/csp-shell/README.md
@@ -190,7 +190,7 @@ jobs:
           check: true
 
       - name: Verify crates/csp-policy/README.md is current
-        uses: TimSchoenle/actions/actions/common/render-template@c4068f4412c52bcf92d15f9bb255d37b2eafd0b7 # tag=actions-common-render-template-v1.2.5
+        uses: TimSchoenle/actions/actions/common/render-template@1e89d598e447ab05d36edc9e9d18e8771adf6426 # tag=actions-common-render-template-v1.2.6
         with:
           template: .github/templates/csp-policy.README.md.hbs
           output: crates/csp-policy/README.md
