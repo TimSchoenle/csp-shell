@@ -5,7 +5,7 @@ not match its template fails the `readme` check in .github/workflows/docs.yml.
 
 The payload has two halves.
 
-Repository facts (name, description, licence, links, the docs index) come from
+Repository facts (name, description, links, the docs index) come from
 TimSchoenle/actions/actions/common/readme-variables, which reads crates/csp-shell/Cargo.toml.
 The workspace root is a virtual manifest with no [package] table, so it cannot be read instead.
 

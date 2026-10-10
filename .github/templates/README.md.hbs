@@ -5,7 +5,7 @@ not match its template fails the `readme` check in .github/workflows/docs.yml.
 
 The payload has two halves.
 
-Repository facts (name, description, licence, links, the docs index) come from
+Repository facts (name, description, links, the docs index) come from
 TimSchoenle/actions/actions/common/readme-variables, which reads crates/csp-shell/Cargo.toml.
 The workspace root is a virtual manifest with no [package] table, so it cannot be read instead.
 
@@ -221,7 +221,7 @@ runner standing in for the other.
 | --- | --- |
 | [crates/csp-shell/README.md](crates/csp-shell/README.md) | The scanner, the nonce obligations, the presets, and detecting a shell that changed under a running process |
 | [crates/csp-policy/README.md](crates/csp-policy/README.md) | Why every term is a type, which directives are covered, and why rendering is infallible |
-{{#each docs}}| [{{ path }}]({{ path }}) | {{ default (mdCell summary) "—" }} |
+{{#each docs}}| [{{ title }}]({{ path }}) | {{ default (mdCell summary) "—" }} |
 {{/each}}
 The API documentation is not on docs.rs, because nothing here is published to crates.io. Render it
 locally with `cargo doc --workspace --all-features --open`.
