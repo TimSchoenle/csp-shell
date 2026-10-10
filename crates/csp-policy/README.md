@@ -5,9 +5,14 @@ README.md does not match its template fails the `readme` check in .github/workfl
 
 Variables come from .github/scripts/readme-variables.sh, which reads the manifests:
 
-    msrv            the workspace rust-version, e.g. 1.85.0
-    policy_version  this crate's [package] version, e.g. 0.1.0
-    policy_tag      the tag that release carries, e.g. csp-policy-v0.1.0
+    msrv            the workspace rust-version
+    policy_version  this crate's [package] version
+    policy_tag      the tag that release carries, csp-policy-v<policy_version>
+    repo.license    the workspace licence, which the members inherit
+
+The repository URL comes from TimSchoenle/actions/actions/common/readme-variables. The
+description below is written here because that action reads crates/csp-shell/Cargo.toml, so its
+`repo.description` is the other crate's.
 
 That is what keeps the install snippet and the MSRV badge correct across a release: the release
 pull request is the commit that changes those numbers, so it arrives with the rendered README
@@ -15,26 +20,29 @@ already updated.
 -->
 # csp-policy
 
-[![CI](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml/badge.svg)](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-0.2.1-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-policy-v0.2.1)
-[![MSRV](https://img.shields.io/badge/MSRV-1.85.0-blue)](../../Cargo.toml)
-[![Licence](https://img.shields.io/badge/licence-MIT-blue)](../../LICENSE)
-
 A Content-Security-Policy as data: every directive, source expression and token is a Rust type,
 and the header value is what those types render to.
 
+[![Version](https://img.shields.io/badge/version-0.2.1-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-policy-v0.2.1)
+[![CI](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml/badge.svg)](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml)
+[![Licence](https://img.shields.io/badge/licence-MIT-blue)](../../LICENSE)
+[![MSRV](https://img.shields.io/badge/MSRV-1.85.0-blue)](../../Cargo.toml)
+
+## What this is
+
 `no_std + alloc`, and no dependencies at all.
 
-```toml
-[dependencies]
-csp-policy = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-policy-v0.2.1" }
-```
+Building and rendering, not parsing a whole policy back out of a response and not enforcing one.
+Each term parses from its own textual form through `Source::parse`, `HostSource::parse` and the
+rest, which is what a consumer reading origins out of configuration needs. Reassembling a whole
+header into a `Policy` is deliberately absent: the only honest result of parsing a policy a
+browser would partly ignore is a value that says which parts those were, and that is a different
+crate.
 
-This crate versions independently of [`csp-shell`](../csp-shell) and carries its own tag, so
-depending on it does not tie you to the release cadence of the scanner built on top of it. Pin by
-tag, not branch: `Cargo.lock` records the resolved revision either way, but a branch dependency
-lets `cargo update` move silently across arbitrary commits, whereas a tag makes every bump a
-deliberate manifest edit that shows up in review.
+For deriving a policy from the document you are about to serve, with inline-script hashes and
+per-response nonces, see [`csp-shell`](../csp-shell), which is built on this crate and re-exports it.
+
+## Quick start
 
 ```rust
 use csp_policy::{Directive, Policy, Source, SourceDirective, SourceList};
@@ -55,7 +63,9 @@ assert_eq!(
 );
 ```
 
-## Why a type per term
+## Features
+
+### Why a type per term
 
 A CSP fails silently in both directions. A browser given a directive it cannot parse drops the
 directive; given a source expression it cannot parse it drops the expression and keeps the rest.
@@ -75,7 +85,7 @@ So the mistakes worth catching are the ones a string API cannot see:
 | A nonce carrying 96 bits | accepts it; it is simply guessable | `NonceSource` enforces the 128-bit floor |
 | `https://cdn.example; script-src *` from configuration | reads it as two directives | `HostSource` parses into components and renders from them |
 
-## Rendering is infallible on purpose
+### Rendering is infallible on purpose
 
 Every leaf type validates its bytes at construction, and every one of them is either opaque or an
 enum. There is no value in this crate whose rendered form can contain a `;`, a `,`, a space or a
@@ -85,7 +95,7 @@ they can only unwrap.
 
 Three fuzz targets and a stable-toolchain property test over every parser assert exactly that.
 
-## What is covered
+### What is covered
 
 Every directive in CSP3 and the current drafts, with the value grammar each one actually takes:
 
@@ -102,16 +112,18 @@ Source expressions cover every keyword (`'self'`, `'unsafe-inline'`, `'strict-dy
 `'wasm-unsafe-eval'`, `'unsafe-hashes'`, `'report-sample'`, `'inline-speculation-rules'`), schemes,
 host patterns with wildcards, ports and paths, nonces, and SHA-256/384/512 hashes.
 
-## Scope
+## Installation
 
-Building and rendering, not parsing a whole policy back out of a response and not enforcing one.
-Each term parses from its own textual form through `Source::parse`, `HostSource::parse` and the
-rest, which is what a consumer reading origins out of configuration needs. Reassembling a whole header
-into a `Policy` is deliberately absent: the only honest result of parsing a policy a browser would
-partly ignore is a value that says which parts those were, and that is a different crate.
+```toml
+[dependencies]
+csp-policy = { git = "https://github.com/TimSchoenle/csp-shell", tag = "csp-policy-v0.2.1" }
+```
 
-For deriving a policy from the document you are about to serve, with inline-script hashes and
-per-response nonces, see [`csp-shell`](../csp-shell), which is built on this crate and re-exports it.
+This crate versions independently of [`csp-shell`](../csp-shell) and carries its own tag, so
+depending on it does not tie you to the release cadence of the scanner built on top of it. Pin by
+tag, not branch: `Cargo.lock` records the resolved revision either way, but a branch dependency
+lets `cargo update` move silently across arbitrary commits, whereas a tag makes every bump a
+deliberate manifest edit that shows up in review.
 
 ## Contributing
 
@@ -119,9 +131,9 @@ per-response nonces, see [`csp-shell`](../csp-shell), which is built on this cra
 it on every pull request and commits the result back to the branch, and a push to `main` whose
 `README.md` does not match its template fails.
 
-The gates and the fuzzing workflow are described in
-[`crates/csp-shell/README.md`](../csp-shell/README.md#contributing); this crate's three fuzz
-targets replay on a plain `cargo test` from `fuzz/`.
+The gates are listed in [the repository README](../../README.md#contributing), and the fuzzing
+campaign in [`crates/csp-shell/README.md`](../csp-shell/README.md#contributing). This crate's
+three fuzz targets replay on a plain `cargo test` from `fuzz/`.
 
 ## Licence
 
