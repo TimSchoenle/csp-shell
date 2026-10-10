@@ -67,7 +67,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           components: clippy
-      - uses: taiki-e/install-action@183e4297cca2404691e9380e1307288dced5c82a # v2.87.25
+      - uses: taiki-e/install-action@f7e5d7c961414b23f5b25b2da9294395d08513ad # v2.87.26
         with:
           tool: cargo-hack
       - run: cargo hack --workspace --feature-powerset clippy --all-targets -- -D warnings
@@ -92,7 +92,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
-      - uses: taiki-e/install-action@183e4297cca2404691e9380e1307288dced5c82a # v2.87.25
+      - uses: taiki-e/install-action@f7e5d7c961414b23f5b25b2da9294395d08513ad # v2.87.26
         with:
           tool: cargo-hack
       # `each-feature` first, so a test that only compiles because another feature happened to be
@@ -176,7 +176,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           toolchain: nightly
-      - uses: taiki-e/install-action@183e4297cca2404691e9380e1307288dced5c82a # v2.87.25
+      - uses: taiki-e/install-action@f7e5d7c961414b23f5b25b2da9294395d08513ad # v2.87.26
         with:
           tool: cargo-hack
       # What docs.rs itself renders, so a broken page is caught before a release nobody can take
@@ -256,7 +256,7 @@ jobs:
       # The tool has to be named through the input rather than an `@cargo-fuzz` tag: tag-style
       # references get rewritten to version tags, which leaves the action with no tool to install
       # and the run failing later with a bare `no such command: fuzz`.
-      - uses: taiki-e/install-action@183e4297cca2404691e9380e1307288dced5c82a # v2.87.25
+      - uses: taiki-e/install-action@f7e5d7c961414b23f5b25b2da9294395d08513ad # v2.87.26
         with:
           tool: cargo-fuzz
 
