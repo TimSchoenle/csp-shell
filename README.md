@@ -24,6 +24,7 @@ Content-Security-Policy built from the app shell you serve: inline-script hashes
 [![csp-shell](https://img.shields.io/badge/csp--shell-0.2.1-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-shell-v0.2.1)
 [![csp-policy](https://img.shields.io/badge/csp--policy-0.2.1-blue)](https://github.com/TimSchoenle/csp-shell/releases/tag/csp-policy-v0.2.1)
 [![CI](https://img.shields.io/github/actions/workflow/status/TimSchoenle/csp-shell/ci.yml?branch=main&label=CI)](https://github.com/TimSchoenle/csp-shell/actions/workflows/ci.yml)
+[![Codecov](https://codecov.io/gh/TimSchoenle/csp-shell/graph/badge.svg)](https://codecov.io/gh/TimSchoenle/csp-shell)
 [![Licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.85.0-blue)](Cargo.toml)
 
