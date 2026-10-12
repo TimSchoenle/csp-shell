@@ -101,6 +101,29 @@ jobs:
       - run: cargo hack --workspace --each-feature test
       - run: cargo test --workspace --all-features
 
+  # Kept apart from `test` and out of `ci`, so a Codecov outage fails this job alone. The upload
+  # authenticates with this job's OIDC token, so the job needs no environment and no secret.
+  # `.github/codecov.yml` decides what the Codecov statuses check.
+  #
+  # The action runs `cargo llvm-cov nextest`, which skips doctests, so lines reached only by a
+  # documentation example count as uncovered.
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read # Required to checkout the code
+      id-token: write # Required to authenticate the Codecov upload with OIDC
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: TimSchoenle/actions/actions/rust/coverage-codecov@3dc15ee0f2fbacdc1741a20bc0e8ad1011b989c7 # tag=actions-rust-coverage-codecov-v2.0.0
+        with:
+          test_arguments: --workspace --all-features
+          flags: rust
+
   # `no_std + alloc` against a target that genuinely has no `std`, rather than against a host that
   # merely was not asked to link it. A crate that claims `no_std` and has never been built for a
   # bare-metal target is a crate that claims it.
