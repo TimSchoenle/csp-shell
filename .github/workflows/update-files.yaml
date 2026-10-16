@@ -35,7 +35,7 @@ jobs:
 
       - name: Generate Bot Token
         id: generate_token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           app-id: ${{ secrets.ACTIONS_MAINTENANCE_APP_ID }}
           private-key: ${{ secrets.ACTIONS_MAINTENANCE_PRIVATE_KEY }}
@@ -54,7 +54,7 @@ jobs:
         run: cargo fetch
 
       - name: Commit and push if changed
-        uses: TimSchoenle/actions/actions/common/commit-changes@1e89d598e447ab05d36edc9e9d18e8771adf6426 # tag=actions-common-commit-changes-v1.5.6
+        uses: TimSchoenle/actions/actions/common/commit-changes@f33849da61e2397d3a9277762d09a1bf0d2b9d7c # tag=actions-common-commit-changes-v1.5.7
         with:
           commit_message: 'build: update lockfile'
           file_pattern: 'Cargo.lock'
