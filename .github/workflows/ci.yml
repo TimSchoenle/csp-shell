@@ -169,7 +169,13 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           toolchain: ${{ steps.msrv.outputs.version }}
+      # There is no Cargo.lock, so this resolves fresh, and by default to the newest versions even
+      # when they need a newer Rust (sha2 0.11.1 raised its floor to 1.88 in a patch release).
+      # `fallback` resolves the way a consumer on the MSRV does: to the newest versions whose
+      # `rust-version` the toolchain satisfies. What it then checks is the promise the MSRV makes.
       - run: cargo check --workspace --all-features --all-targets
+        env:
+          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: fallback
 
   doc:
     name: doc
