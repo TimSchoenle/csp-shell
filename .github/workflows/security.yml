@@ -49,4 +49,4 @@ jobs:
           persist-credentials: false
 
       - name: Run zizmor
-        uses: TimSchoenle/actions/actions/security/zizmor@ff1e7853c7953c8d7176325ea4912add4a3c5398 # tag=actions-security-zizmor-v1.1.0
+        uses: TimSchoenle/actions/actions/security/zizmor@eaf935674fec7116856ca5e138e1a2dca3f8146d # tag=actions-security-zizmor-v1.1.2
