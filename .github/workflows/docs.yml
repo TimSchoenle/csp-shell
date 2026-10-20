@@ -85,7 +85,7 @@ jobs:
       # and would put that into the CI badge's query string.
       - name: Collect the README payload
         id: variables
-        uses: TimSchoenle/actions/actions/common/readme-variables@eaf935674fec7116856ca5e138e1a2dca3f8146d # tag=actions-common-readme-variables-v1.2.8
+        uses: TimSchoenle/actions/actions/common/readme-variables@8da2713994ba2b5f542e7e3334db287b1e22854a # tag=actions-common-readme-variables-v1.2.9
         with:
           manifest: crates/csp-shell/Cargo.toml
           branch: ${{ github.event.repository.default_branch }}
@@ -93,21 +93,21 @@ jobs:
           extra: ${{ steps.config.outputs.json }}
 
       - name: Render the workspace README
-        uses: TimSchoenle/actions/actions/common/render-template@eaf935674fec7116856ca5e138e1a2dca3f8146d # tag=actions-common-render-template-v1.2.8
+        uses: TimSchoenle/actions/actions/common/render-template@8da2713994ba2b5f542e7e3334db287b1e22854a # tag=actions-common-render-template-v1.2.9
         with:
           template: .github/templates/README.md.hbs
           output: README.md
           variables: ${{ steps.variables.outputs.variables }}
 
       - name: Render the csp-shell README
-        uses: TimSchoenle/actions/actions/common/render-template@eaf935674fec7116856ca5e138e1a2dca3f8146d # tag=actions-common-render-template-v1.2.8
+        uses: TimSchoenle/actions/actions/common/render-template@8da2713994ba2b5f542e7e3334db287b1e22854a # tag=actions-common-render-template-v1.2.9
         with:
           template: .github/templates/csp-shell.README.md.hbs
           output: crates/csp-shell/README.md
           variables: ${{ steps.variables.outputs.variables }}
 
       - name: Render the csp-policy README
-        uses: TimSchoenle/actions/actions/common/render-template@eaf935674fec7116856ca5e138e1a2dca3f8146d # tag=actions-common-render-template-v1.2.8
+        uses: TimSchoenle/actions/actions/common/render-template@8da2713994ba2b5f542e7e3334db287b1e22854a # tag=actions-common-render-template-v1.2.9
         with:
           template: .github/templates/csp-policy.README.md.hbs
           output: crates/csp-policy/README.md
@@ -115,7 +115,7 @@ jobs:
 
       - name: Commit the rendered READMEs
         id: readmes
-        uses: TimSchoenle/actions/actions/common/commit-changes@eaf935674fec7116856ca5e138e1a2dca3f8146d # tag=actions-common-commit-changes-v1.5.8
+        uses: TimSchoenle/actions/actions/common/commit-changes@8da2713994ba2b5f542e7e3334db287b1e22854a # tag=actions-common-commit-changes-v1.5.9
         with:
           commit_message: 'docs: render READMEs from templates'
           file_pattern: 'README.md crates/csp-shell/README.md crates/csp-policy/README.md'
@@ -165,7 +165,7 @@ jobs:
       # pull request committed and the gate would fail on every merge.
       - name: Collect the README payload
         id: variables
-        uses: TimSchoenle/actions/actions/common/readme-variables@eaf935674fec7116856ca5e138e1a2dca3f8146d # tag=actions-common-readme-variables-v1.2.8
+        uses: TimSchoenle/actions/actions/common/readme-variables@8da2713994ba2b5f542e7e3334db287b1e22854a # tag=actions-common-readme-variables-v1.2.9
         with:
           manifest: crates/csp-shell/Cargo.toml
           branch: ${{ github.event.repository.default_branch }}
@@ -174,7 +174,7 @@ jobs:
 
       # Each writes nothing; each fails with the first differing line when its output is stale.
       - name: Verify README.md is current
-        uses: TimSchoenle/actions/actions/common/render-template@eaf935674fec7116856ca5e138e1a2dca3f8146d # tag=actions-common-render-template-v1.2.8
+        uses: TimSchoenle/actions/actions/common/render-template@8da2713994ba2b5f542e7e3334db287b1e22854a # tag=actions-common-render-template-v1.2.9
         with:
           template: .github/templates/README.md.hbs
           output: README.md
@@ -182,7 +182,7 @@ jobs:
           check: true
 
       - name: Verify crates/csp-shell/README.md is current
-        uses: TimSchoenle/actions/actions/common/render-template@eaf935674fec7116856ca5e138e1a2dca3f8146d # tag=actions-common-render-template-v1.2.8
+        uses: TimSchoenle/actions/actions/common/render-template@8da2713994ba2b5f542e7e3334db287b1e22854a # tag=actions-common-render-template-v1.2.9
         with:
           template: .github/templates/csp-shell.README.md.hbs
           output: crates/csp-shell/README.md
@@ -190,7 +190,7 @@ jobs:
           check: true
 
       - name: Verify crates/csp-policy/README.md is current
-        uses: TimSchoenle/actions/actions/common/render-template@eaf935674fec7116856ca5e138e1a2dca3f8146d # tag=actions-common-render-template-v1.2.8
+        uses: TimSchoenle/actions/actions/common/render-template@8da2713994ba2b5f542e7e3334db287b1e22854a # tag=actions-common-render-template-v1.2.9
         with:
           template: .github/templates/csp-policy.README.md.hbs
           output: crates/csp-policy/README.md
