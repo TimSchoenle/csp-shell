@@ -1,0 +1,114 @@
+# yaml-language-server: $schema=https://storage.googleapis.com/coderabbit_public_assets/schema.v2.json
+tone_instructions: "Direct, no filler, no praise."
+
+reviews:
+  profile: assertive
+
+  auto_review:
+    # CodeRabbit cannot filter by head branch, so automated pull requests are
+    # skipped by author: Renovate opens `renovate/*`, the release manager app
+    # opens `release-please--*`. Both the bot login and the bare app slug are
+    # listed because the match is exact.
+    ignore_usernames:
+      - "renovate[bot]"
+      - "renovate"
+      - "automatic-release-manager[bot]"
+      - "automatic-release-manager"
+
+  # Generated or tool-owned files. Review their sources instead.
+  path_filters:
+    - "!target/**"
+    - "!crates/*/CHANGELOG.md"
+    - "!.release-please-manifest.json"
+    - "!README.md" # rendered from .github/templates/README.md.hbs
+    - "!crates/*/README.md" # rendered from .github/templates/<crate>.README.md.hbs
+    # Deliberately malformed fuzz inputs; linting them is noise.
+    - "!crates/*/fuzz/seeds/**"
+
+  path_instructions:
+    - path: "crates/*/src/**/*.rs"
+      instructions: |
+        Published library crates following semver (pre-1.0: a minor bump is breaking). Flag:
+        - Changes to public items (signatures, trait bounds, struct fields, enum variants,
+          feature flags) that break semver; new public enums/structs should be `#[non_exhaustive]`
+          where future growth is plausible.
+        - `unwrap`, `expect`, `panic!`, `unreachable!` or indexing that can panic in non-test code;
+          fallible paths must return typed errors, and any remaining panic needs a `# Panics` doc.
+        - Missing `# Errors` / `# Panics` sections, rustdoc on public items, or `Debug` impls.
+        - Anything that breaks `no_std` + `alloc`: `std::` paths outside
+          `#[cfg(feature = "std")]` (csp-shell) or anywhere in csp-policy. CI builds both for
+          `thumbv7em-none-eabi`.
+        - Code that would not compile on the MSRV (`rust-version = 1.85.0`), or under any feature
+          combination (`cargo hack --feature-powerset`).
+        - New dependencies: `deny.toml` bans web frameworks, `reqwest`, `tracing`, `thiserror`
+          and `rand`, and allows only MIT/Apache-2.0.
+        `unsafe_code` is forbidden in both crates; do not suggest `unsafe`.
+    - path: "crates/csp-policy/src/**"
+      instructions: |
+        Security boundary: the rendered header value must never carry an injection. Scrutinise
+        every path from caller-supplied strings into the output for `;`, `,`, CR/LF, NUL,
+        whitespace and quote handling; keyword, scheme, host, path and nonce/hash validation;
+        and case-insensitivity rules. A relaxed check is a vulnerability, not a convenience.
+    - path: "crates/csp-shell/src/scan.rs"
+      instructions: |
+        Parses untrusted HTML app shells to hash inline scripts. Check that the hashed bytes are
+        exactly what a browser executes (BOM, CRLF, attribute quoting, case, unterminated tags),
+        that malformed input fails closed rather than emitting a permissive policy, and that
+        scanning is linear with no unbounded recursion or allocation.
+    - path: "crates/csp-shell/src/nonce.rs"
+      instructions: |
+        Nonces must come from the OS CSPRNG via `getrandom`, carry at least 128 bits of entropy,
+        be base64-encoded per the CSP grammar, and never be reused or derived from predictable
+        input. A failed RNG must never fall back to a weaker source.
+    - path: "crates/csp-shell/src/presets/**"
+      instructions: |
+        Each preset states which origins a third-party service needs and in which directives.
+        Require a vendor documentation reference for every origin, the narrowest directive that
+        works, and no `'unsafe-inline'`, `'unsafe-eval'` or wildcard hosts.
+    - path: "crates/*/tests/**"
+      instructions: |
+        Integration tests. Do not apply documentation or panic rules. Flag assertions that only
+        check a substring where the exact header value is the contract.
+    - path: "crates/*/fuzz/**"
+      instructions: |
+        Test-only fuzz harnesses (separate workspaces on nightly). Do not apply library API or
+        documentation rules; focus on whether the oracles assert real properties and the targets
+        exercise meaningful input space instead of trivially rejected inputs.
+    - path: ".github/workflows/**"
+      instructions: |
+        Every third-party action must be pinned to a full commit SHA with a version comment.
+        Require least-privilege `permissions:` at workflow or job level, `persist-credentials: false`
+        on checkout unless pushing, no untrusted `${{ github.event.* }}` interpolation into `run:`,
+        and no `pull_request_target` that checks out or executes PR code.
+    - path: ".github/templates/**"
+      instructions: |
+        Sources of the generated READMEs. Review rendered wording, links, badge URLs and the
+        version/MSRV variables here; every mustache must reference a real variable.
+    - path: "**/*.sh"
+      instructions: |
+        Require `set -euo pipefail`, quoted expansions, and no reliance on GNU-only flags
+        without a comment. Output fed to templates must be valid JSON for every accepted input.
+
+  pre_merge_checks:
+    title:
+      mode: error
+      requirements: |
+        Must follow Conventional Commits: `type(scope)?!?: subject`. Allowed types: feat, fix, perf,
+        revert, docs, refactor, test, style, ci, build, chore, deps. Lowercase, imperative subject,
+        no trailing period. release-please derives version bumps and the changelog from this title.
+
+  tools:
+    # Both already run in CI (ci.yml clippy across the feature powerset, security.yml zizmor);
+    # duplicating them adds noise.
+    clippy:
+      enabled: false
+    zizmor:
+      enabled: false
+    actionlint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    shellcheck:
+      enabled: true
+    markdownlint:
+      enabled: true
