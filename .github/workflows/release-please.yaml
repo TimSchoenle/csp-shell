@@ -41,10 +41,9 @@ jobs:
       deployment: false
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: write # to create the release commit, the tags and the GitHub releases
-      issues: write # to comment on the issues a release closes
-      pull-requests: write # to open and maintain the release pull request
+    # Nothing for `GITHUB_TOKEN`: every write below — the release commit, the tags, the GitHub
+    # releases and the release pull request — is made with the App token minted in this job.
+    permissions: {}
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       paths_released: ${{ steps.release.outputs.paths_released }}
