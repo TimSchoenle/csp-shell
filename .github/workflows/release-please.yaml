@@ -13,7 +13,8 @@ name: release-please
 #
 # Nothing is published to crates.io: the crates are consumed as tagged git dependencies, so the
 # tag *is* the artefact. Turning that on later is a `cargo publish` job gated on
-# `release_created`, ordered `csp-policy` before `csp-shell` — no other part of this file changes.
+# `release_created`, ordered `csp-policy` before `csp-shell`, plus the release-please job's
+# `outputs:` that hand it that value — no other part of this file changes.
 #
 # The versions the READMEs advertise are not maintained here. `docs.yml` re-renders the templates
 # on every pull request from the versions in the manifests, so the release pull request — which
@@ -44,9 +45,6 @@ jobs:
     # Nothing for `GITHUB_TOKEN`: every write below — the release commit, the tags, the GitHub
     # releases and the release pull request — is made with the App token minted in this job.
     permissions: {}
-    outputs:
-      releases_created: ${{ steps.release.outputs.releases_created }}
-      paths_released: ${{ steps.release.outputs.paths_released }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
@@ -60,7 +58,7 @@ jobs:
         id: generate_token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          client-id: ${{ secrets.RELEASE_BOT_APP_ID }}
           private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
           permission-contents: write # release commit, tags and GitHub releases
           permission-pull-requests: write # open and maintain the release pull request

@@ -324,6 +324,7 @@ jobs:
           TARGETS: ${{ matrix.targets }}
           DICTIONARY: ${{ matrix.dictionary }}
         run: |
+          set -o pipefail
           host="$(rustc -vV | sed -n 's/^host: //p')"
           for target in ${TARGETS}; do
             # libFuzzer creates the corpus directory only when it is the sole one given; with a
@@ -334,7 +335,7 @@ jobs:
               seeds="fuzz/seeds/${target}"
             fi
             cargo fuzz run --target "${host}" "${target}" \
-              "fuzz/corpus/${target}" ${seeds} \
+              "fuzz/corpus/${target}" ${seeds:+"${seeds}"} \
               -- "-dict=fuzz/dictionaries/${DICTIONARY}" -max_total_time=30
           done
 
