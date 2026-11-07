@@ -5,8 +5,11 @@ name: security
 # `permissions`, credentials persisted into `.git/config`, and `${{ }}` interpolated into a
 # `run:` block, which is a shell injection rather than a template.
 #
-# `pedantic` on purpose: the default persona reports only what is provably exploitable today,
-# pedantic reports the shape that becomes exploitable after one careless edit.
+# jactionlint keeps every actionlint check and has a rule for every zizmor audit. `pedantic` on
+# purpose: the default profile reports only what is provably exploitable today, pedantic reports
+# the shape that becomes exploitable after one careless edit. It runs offline, so the result
+# depends on the change alone, and uploads the SARIF to code scanning under the category
+# jactionlint. .github/jactionlint.yaml turns off the rules this repository does not want.
 #
 # Dependency advisories are not here. `cargo deny check` in ci.yml already covers them against
 # the committed `Cargo.lock`, and the weekly schedule below has a sibling there so an advisory
@@ -18,7 +21,7 @@ on:
     branches: [main]
   pull_request:
   schedule:
-    # Weekly: zizmor's audit set grows between releases, and a workflow that was clean when it
+    # Weekly: jactionlint's rule set grows between releases, and a workflow that was clean when it
     # was written is not clean forever.
     - cron: "0 4 * * 1"
   workflow_dispatch:
@@ -30,8 +33,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  zizmor:
-    name: zizmor
+  action-lint:
+    name: Action Lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -48,5 +51,5 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Run zizmor
-        uses: TimSchoenle/actions/actions/security/zizmor@dc5b395636dc1954383f11af4062a08814e9b15a # tag=actions-security-zizmor-v2.0.1
+      - name: Run jactionlint
+        uses: TimSchoenle/actions/actions/security/jactionlint@e2799424abd778c41e7f6d1547fd402386ef398e # tag=actions-security-jactionlint-v1.1.0
