@@ -16,7 +16,7 @@ name: release-please
 # `release_created`, ordered `csp-policy` before `csp-shell`, plus the release-please job's
 # `outputs:` that hand it that value — no other part of this file changes.
 #
-# The versions the READMEs advertise are not maintained here. `docs.yml` re-renders the templates
+# The versions the READMEs advertise are not maintained here. `generate.yaml` re-renders the templates
 # on every pull request from the versions in the manifests, so the release pull request — which
 # is the commit that changes them — carries the updated READMEs with it, rather than leaving the
 # install snippets pointing at the previous tags.
