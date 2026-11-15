@@ -119,7 +119,7 @@ jobs:
         uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
         with:
           egress-policy: audit
-      - uses: TimSchoenle/actions/actions/rust/coverage-codecov@daf766fd1ab9d48129210afc63b1a7353f6064fd # tag=actions-rust-coverage-codecov-v2.0.9
+      - uses: TimSchoenle/actions/actions/rust/coverage-codecov@49acdef9979f343817ec2a85ddd25e5f34befc8b # tag=actions-rust-coverage-codecov-v2.1.0
         with:
           test_arguments: --workspace --all-features
           flags: rust
